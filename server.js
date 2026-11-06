@@ -63,7 +63,7 @@ app.post('/api/agent1-analyst', async (req, res) => {
     res.json({ result: text.substring(0, 4000) });
 });
 
-// Ajan 2: Senaryo Mimarı (Groq 8B)
+// Ajan 2: Senaryo Mimarı (Groq Güncel Küçük Model)
 app.post('/api/agent2-scenario', async (req, res) => {
     const { summary } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
@@ -72,7 +72,7 @@ app.post('/api/agent2-scenario', async (req, res) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
-                model: 'llama-3.1-8b-instant',
+                model: 'openai/gpt-oss-20b',
                 messages: [{ role: 'user', content: `Bu materyal için akıllı bir sınav başlığı belirle. Yalnızca ham JSON döndür: {"title": "Başlık"}. Materyal: "${summary.substring(0, 1000)}"` }],
                 temperature: 0.5
             })
@@ -88,7 +88,7 @@ app.post('/api/agent2-scenario', async (req, res) => {
     res.json({ result: '{"title": "Kapsamlı Deneme Sınavı"}' });
 });
 
-// Ajan 3: Sınav Üreticisi (Groq Güncel Aktif Model)
+// Ajan 3: Sınav Üreticisi (Groq Güncel 120B Model)
 app.post('/api/agent3-generator', async (req, res) => {
     const { prompt } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
@@ -97,7 +97,7 @@ app.post('/api/agent3-generator', async (req, res) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
-                model: 'llama-3.3-70b-specdec',
+                model: 'openai/gpt-oss-120b',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7
             })
