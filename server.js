@@ -88,7 +88,7 @@ app.post('/api/agent2-scenario', async (req, res) => {
     res.json({ result: '{"title": "Kapsamlı Deneme Sınavı"}' });
 });
 
-// Ajan 3: Sınav Üreticisi (Groq 70B) - URL Hatası Düzeltildi
+// Ajan 3: Sınav Üreticisi (Groq 70B) - Model Adı Düzeltildi
 app.post('/api/agent3-generator', async (req, res) => {
     const { prompt } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
@@ -97,7 +97,7 @@ app.post('/api/agent3-generator', async (req, res) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
+                model: 'llama-3.1-70b-versatile',
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.7
             })
