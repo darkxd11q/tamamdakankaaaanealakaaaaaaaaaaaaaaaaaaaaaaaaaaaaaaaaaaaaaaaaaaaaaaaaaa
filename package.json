@@ -1,7 +1,7 @@
 {
   "name": "quizcraft-ai-pro",
   "version": "1.0.0",
-  "description": "QuizCraft AI Pro - GitHub & Render Ready Multi-Agent Exam Engine",
+  "description": "QuizCraft AI Pro - Tam Donanımlı Multi-Agent Sınav Mimarisi",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

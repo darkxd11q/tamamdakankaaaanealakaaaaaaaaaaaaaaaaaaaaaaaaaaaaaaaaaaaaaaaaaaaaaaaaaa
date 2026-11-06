@@ -15,7 +15,7 @@ const sitePass = process.env.SITE_PASS || '123456';
 app.use(basicAuth({
     users: { [siteUser]: sitePass },
     challenge: true,
-    realm: 'QuizCraft Protection Zone'
+    realm: 'QuizCraft AI Pro Koruma Alanı'
 }));
 
 app.use(cors());
@@ -23,14 +23,13 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
-
 const fetchAPI = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
-// --- PDF PARSE API ---
+// --- PDF PARSE PROXY ---
 app.post('/api/parse-pdf', upload.array('pdfs'), async (req, res) => {
     try {
         if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ error: 'PDF dosyası bulunamadı.' });
+            return res.status(400).json({ error: 'PDF dosyası yüklenmedi.' });
         }
         let fullText = '';
         for (const file of req.files) {
@@ -40,33 +39,25 @@ app.post('/api/parse-pdf', upload.array('pdfs'), async (req, res) => {
         res.json({ text: fullText });
     } catch (err) {
         console.error('PDF Parse Hatası:', err);
-        res.status(500).json({ error: 'PDF dosyası okunamadı: ' + err.message });
+        res.status(500).json({ error: 'PDF okunamadı: ' + err.message });
     }
 });
 
-// --- GEMINI PROXY ---
+// --- AGENT 1: GEMINI PROXY ---
 app.post('/api/agent1-summary', async (req, res) => {
     const { text } = req.body;
     const apiKey = process.env.GEMINI_API_KEY || 'AQ.Ab8RN6K0odcx_FADTp2zmR66O0LAus14At-k29d-hjoOVg-bfg';
 
-    if (!apiKey) {
-        return res.status(400).json({ error: 'GEMINI_API_KEY bulunamadı!' });
-    }
-
-    const modelsToTry = [
-        'gemini-2.0-flash-exp',
-        'gemini-1.5-flash',
-        'gemini-1.5-pro'
-    ];
-
+    const modelsToTry = ['gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro'];
     let lastError = null;
+
     for (const model of modelsToTry) {
         try {
             const response = await fetchAPI(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: `Aşağıdaki ders notlarını ve materyalleri analiz edip pedagojik özet çıkar:\n"${text.substring(0, 4000)}"` }] }]
+                    contents: [{ parts: [{ text: `Aşağıdaki ders materyalini detaylı analiz et ve özetle:\n"${text.substring(0, 4000)}"` }] }]
                 })
             });
 
@@ -82,30 +73,20 @@ app.post('/api/agent1-summary', async (req, res) => {
             lastError = e.message;
         }
     }
-
     res.status(500).json({ error: 'Gemini API Hatası: ' + (lastError || 'Modeller yanıt vermedi.') });
 });
 
-// --- GROQ PROXY ---
+// --- AGENT 2 & 3: GROQ PROXY ---
 app.post('/api/agent-groq', async (req, res) => {
     const { prompt } = req.body;
     const apiKey = process.env.GROQ_API_KEY || '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';
 
-    if (!apiKey) {
-        return res.status(400).json({ error: 'GROQ_API_KEY bulunamadı!' });
-    }
-
-    const groqModels = [
-        'llama-3.3-70b-versatile',
-        'llama-3.1-8b-instant',
-        'llama3-70b-8192',
-        'mixtral-8x7b-32768'
-    ];
-
+    const groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'llama3-70b-8192', 'mixtral-8x7b-32768'];
     let lastError = null;
+
     for (const model of groqModels) {
         try {
-            const response = await fetchAPI('https://api.groq.com/openai/v1,chat/completions', {
+            const response = await fetchAPI('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -130,10 +111,9 @@ app.post('/api/agent-groq', async (req, res) => {
             lastError = e.message;
         }
     }
-
     res.status(500).json({ error: 'Groq API Hatası: ' + (lastError || 'Tüm Groq modelleri başarısız oldu.') });
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 QuizCraft AI Pro Sunucusu Port ${PORT} Üzerinde Aktif!`);
+    console.log(`🚀 QuizCraft AI Pro Backend Sunucusu ${PORT} portunda çalışıyor!`);
 });

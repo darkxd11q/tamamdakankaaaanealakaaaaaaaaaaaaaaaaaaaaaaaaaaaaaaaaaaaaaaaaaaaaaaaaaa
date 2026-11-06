@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QuizCraft AI Pro - Multi-Agent Engine</title>
+    <title>QuizCraft AI Pro - Akıllı Çoklu Ajan Sınav Mimarisi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -23,166 +23,301 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .glass { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glass { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.5); border-radius: 4px; }
+        @keyframes pulse-subtle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(0.99); }
+        }
+        .agent-active { animation: pulse-subtle 2s infinite ease-in-out; border-color: #3b82f6 !important; box-shadow: 0 0 20px rgba(59, 130, 246, 0.35); }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col md:flex-row antialiased selection:bg-brand-500 selection:text-white custom-scrollbar">
 
-    <aside class="w-full md:w-72 bg-slate-900/60 border-r border-slate-800 p-6 flex flex-col justify-between shrink-0">
-        <div class="space-y-6">
-            <div class="flex items-center gap-3 border-b border-slate-800 pb-4">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-accent-purple to-accent-pink flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-brand-500/30">
-                    <i class="fa-solid fa-brain"></i>
-                </div>
-                <div>
-                    <h1 class="font-extrabold text-lg text-white">QuizCraft Pro</h1>
-                    <p class="text-[10px] text-emerald-400 font-mono font-semibold">Render & Node.js Ready</p>
-                </div>
+    <!-- Mobile Header -->
+    <header class="md:hidden flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-accent-purple to-accent-pink flex items-center justify-center font-bold text-lg text-white shadow-lg shadow-brand-500/30">
+                <i class="fa-solid fa-brain"></i>
             </div>
+            <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">QuizCraft AI Pro</span>
+        </div>
+        <button id="mobile-menu-btn" class="p-2 text-slate-400 hover:text-white">
+            <i class="fa-solid fa-bars text-xl"></i>
+        </button>
+    </header>
 
-            <nav class="space-y-2">
-                <button onclick="switchView('create')" id="btn-view-create" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-white bg-brand-600 shadow-lg shadow-brand-600/25">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    <span>Sınav Oluştur</span>
-                </button>
-            </nav>
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 bg-slate-900/90 md:bg-slate-900/40 backdrop-blur-xl border-r border-slate-800 flex flex-col transition-transform duration-300 -translate-x-full md:translate-x-0">
+        <div class="p-6 hidden md:flex items-center gap-3 border-b border-slate-800/80">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-accent-purple to-accent-pink flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-brand-500/30">
+                <i class="fa-solid fa-brain"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-brand-400 bg-clip-text text-transparent">QuizCraft AI Pro</h1>
+                <p class="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Multi-Agent Engine v6.5</p>
+            </div>
         </div>
 
-        <div class="glass p-4 rounded-2xl border border-slate-800 text-xs space-y-2">
-            <div class="flex items-center gap-2 text-emerald-400 font-bold">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Entegre API Anahtarları</span>
+        <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+            <button onclick="switchTab('create')" id="nav-create" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-white bg-gradient-to-r from-brand-600 to-brand-700 shadow-lg shadow-brand-600/25">
+                <i class="fa-solid fa-wand-magic-sparkles text-lg text-brand-200 w-5"></i>
+                <span>Sınav Oluştur</span>
+            </button>
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-300 hover:bg-slate-800/60 hover:text-white">
+                <i class="fa-solid fa-chart-pie text-lg text-brand-500 w-5"></i>
+                <span>Ana Panel</span>
+            </button>
+            <button onclick="switchTab('archive')" id="nav-archive" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-300 hover:bg-slate-800/60 hover:text-white">
+                <i class="fa-solid fa-box-archive text-lg text-accent-purple w-5"></i>
+                <span>Sınav Arşivi</span>
+                <span id="archive-count" class="ml-auto bg-slate-800 text-slate-400 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+            </button>
+            <button onclick="switchTab('wrong-log')" id="nav-wrong-log" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all text-slate-300 hover:bg-slate-800/60 hover:text-white">
+                <i class="fa-solid fa-book-bookmark text-lg text-rose-400 w-5"></i>
+                <span>Hata Defteri</span>
+                <span id="wrong-log-count" class="ml-auto bg-rose-500/20 text-rose-300 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+            </button>
+        </nav>
+
+        <div class="p-4 m-4 rounded-2xl glass border border-slate-800/80 text-xs space-y-2">
+            <div class="flex items-center justify-between text-slate-300">
+                <span class="font-semibold flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Backend Proxy Aktif</span>
+                </span>
             </div>
-            <p class="text-[10px] text-slate-400">Gemini & Groq API anahtarları sunucu tarafında gömülü çalışır.</p>
+            <p class="text-[10px] text-slate-400 font-mono leading-tight">Güvenli Node.js AI Sunucusu Üzerinden Çalışır</p>
         </div>
     </aside>
 
-    <main class="flex-1 p-6 md:p-10 max-w-5xl mx-auto space-y-8 overflow-y-auto custom-scrollbar">
-        <section id="sec-create" class="space-y-6">
-            <div class="glass p-6 rounded-3xl border border-slate-800 space-y-6">
-                <h3 class="font-bold text-lg text-white flex items-center gap-2">
-                    <i class="fa-solid fa-file-pdf text-red-400"></i>
-                    <span>Ders Materyali & PDF Yükleme</span>
-                </h3>
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto custom-scrollbar">
+        <header class="hidden md:flex items-center justify-between px-8 py-4 border-b border-slate-800/80 bg-slate-900/40 backdrop-blur sticky top-0 z-30">
+            <div>
+                <h2 id="page-title" class="font-bold text-lg text-white">Sınav Oluşturucu</h2>
+                <p id="page-subtitle" class="text-xs text-slate-400">Çoklu PDF + Özel Not Analizör ve Derin Düşünme Bütçeli Ajan Sistemi</p>
+            </div>
+        </header>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-3">
-                        <label class="text-xs font-semibold text-slate-300">PDF Dosyaları Seçin:</label>
-                        <input type="file" id="pdf-input" multiple accept="application/pdf" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-500">
+        <!-- VIEW 1: CREATE -->
+        <section id="view-create" class="p-4 md:p-8 max-w-6xl w-full mx-auto space-y-8">
+            <div id="creation-form" class="space-y-6">
+                <!-- PDF & Notes Panel -->
+                <div class="glass p-6 rounded-3xl space-y-6 border border-slate-800">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center font-bold">1</div>
+                            <div>
+                                <h3 class="font-bold text-white text-base">Çoklu Belge ve Ek Not Yükleme</h3>
+                                <p class="text-xs text-slate-400">PDF dosyalarınızı yükleyin veya ders notlarınızı yazın.</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="space-y-3">
-                        <label class="text-xs font-semibold text-slate-300">Ek Özel Notlarınız:</label>
-                        <textarea id="notes-input" rows="4" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500" placeholder="Kendi çalışma notlarınızı buraya yazın..."></textarea>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                                <span>1.1 PDF Dosyaları:</span>
+                                <span id="pdf-count-badge" class="text-[10px] bg-brand-500/20 text-brand-300 px-2 py-0.5 rounded-full font-bold">0 PDF Yüklendi</span>
+                            </label>
+                            <div class="border-2 border-dashed border-slate-700 hover:border-brand-500/60 rounded-2xl p-6 transition-all bg-slate-900/40 text-center flex flex-col items-center justify-center min-h-[160px] relative group cursor-pointer">
+                                <input type="file" id="pdf-file-input" multiple accept="application/pdf" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" onchange="handleMultipleFiles(event)">
+                                <div class="w-10 h-10 rounded-full bg-brand-500/10 text-brand-400 flex items-center justify-center text-lg mb-2">
+                                    <i class="fa-solid fa-folder-plus"></i>
+                                </div>
+                                <h4 class="text-xs font-semibold text-slate-200">PDF Dosyalarını Buraya Sürükleyin veya Seçin</h4>
+                            </div>
+                            <div id="pdf-file-list" class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar"></div>
+                        </div>
+
+                        <div class="flex flex-col">
+                            <div class="flex items-center justify-between mb-2">
+                                <label for="raw-text-input" class="text-xs font-semibold text-slate-300">1.2 Ek Özel Notlarınız:</label>
+                                <button type="button" onclick="loadSampleData()" class="text-brand-400 hover:underline text-[11px] font-semibold">Örnek Not Yükle</button>
+                            </div>
+                            <textarea id="raw-text-input" rows="7" class="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-4 text-xs text-slate-200 focus:outline-none focus:border-brand-500 resize-none flex-1" placeholder="Çalışma notlarınızı buraya yazın..."></textarea>
+                        </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-800 pt-4">
+                <!-- Parameters Panel -->
+                <div class="glass p-6 rounded-3xl space-y-6 border border-slate-800">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold text-slate-300">Soru Formatı</label>
+                            <select id="question-type-select" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                                <option value="mc">Çoktan Seçmeli (Test)</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold text-slate-300">Zorluk Seviyesi</label>
+                            <select id="difficulty-select" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                                <option value="Orta" selected>Orta (Okul Sınavı Standardı)</option>
+                                <option value="Zor">Zor (LGS / YKS Seviyesi)</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-xs font-semibold text-slate-300">
+                                <span>Soru Sayısı:</span>
+                                <span id="question-count-val" class="text-brand-400 font-bold">6 Soru</span>
+                            </div>
+                            <input type="range" id="question-count-slider" min="3" max="15" value="6" oninput="document.getElementById('question-count-val').innerText = this.value + ' Soru'" class="w-full accent-brand-500 bg-slate-900 h-2 rounded-lg cursor-pointer mt-3">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="button" onclick="startBackendPipeline()" class="w-full md:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-brand-600 via-accent-purple to-accent-pink hover:opacity-90 text-white font-bold text-sm shadow-xl flex items-center justify-center gap-3 transition-all">
+                        <i class="fa-solid fa-microchip text-lg"></i>
+                        <span>Ajan Boru Hattını ve Backend Analizini Başlat</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Progress Panel -->
+            <div id="pipeline-progress-panel" class="hidden glass p-8 rounded-3xl border border-brand-500/30 space-y-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-3.5 h-3.5 rounded-full bg-brand-500 animate-ping"></div>
                     <div>
-                        <label class="text-xs font-semibold text-slate-300">Soru Sayısı</label>
-                        <select id="q-count" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 mt-1">
-                            <option value="5">5 Soru</option>
-                            <option value="10" selected>10 Soru</option>
-                            <option value="15">15 Soru</option>
-                        </select>
+                        <h3 class="font-bold text-white text-base">Node.js Çoklu Ajan Sunucusu Çalışıyor</h3>
+                        <p class="text-xs text-slate-400">PDF analizleri ve soru üretimi backend üzerinden gerçekleştiriliyor...</p>
                     </div>
+                </div>
+                <div class="bg-slate-950 rounded-2xl p-4 font-mono text-[11px] text-slate-400 space-y-1 h-36 overflow-y-auto custom-scrollbar border border-slate-800" id="pipeline-logs">
+                    <div class="text-brand-400">> [Sistem] Backend proxy bağlantısı kuruldu...</div>
+                </div>
+            </div>
+
+            <!-- Quiz Taking Panel -->
+            <div id="quiz-taking-panel" class="hidden space-y-6">
+                <div class="glass p-6 rounded-3xl flex justify-between items-center border-b border-brand-500/30">
                     <div>
-                        <label class="text-xs font-semibold text-slate-300">Zorluk Seviyesi</label>
-                        <select id="q-diff" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 mt-1">
-                            <option value="Orta" selected>Orta (Okul Standardı)</option>
-                            <option value="Zor">Zor (LGS / YKS Seviyesi)</option>
-                        </select>
-                    </div>
-                    <div class="flex items-end">
-                        <button onclick="generateExam()" class="w-full py-3 rounded-xl bg-gradient-to-r from-brand-600 to-accent-purple font-bold text-xs text-white shadow-lg hover:opacity-90">
-                            Sınavı Oluştur
-                        </button>
+                        <h3 id="quiz-title-display" class="font-extrabold text-white text-xl">Sınav Başlığı</h3>
+                        <p id="quiz-subtitle-display" class="text-xs text-slate-400">Sorular başarıyla yüklendi</p>
                     </div>
                 </div>
-            </div>
-
-            <div id="pipeline-box" class="hidden glass p-6 rounded-3xl border border-brand-500/30 space-y-4">
-                <div class="flex items-center gap-3 text-brand-400 font-bold text-sm">
-                    <i class="fa-solid fa-spinner fa-spin"></i>
-                    <span id="pipeline-status">Backend API Proxy İstekleri Gönderiliyor...</span>
+                <div id="quiz-questions-list" class="space-y-6"></div>
+                <div class="flex justify-end pt-4">
+                    <button type="button" onclick="finishQuizSubmit()" class="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-xl hover:opacity-90 flex items-center gap-3">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Sınavı Tamamla ve Karneni Gör</span>
+                    </button>
                 </div>
-                <div id="pipeline-logs" class="bg-slate-950 p-4 rounded-xl font-mono text-xs text-slate-400 h-28 overflow-y-auto space-y-1"></div>
             </div>
 
-            <div id="quiz-box" class="hidden space-y-6">
-                <div class="glass p-6 rounded-3xl flex justify-between items-center border border-slate-800">
-                    <h3 id="quiz-title" class="font-extrabold text-lg text-white">Sınav Başlığı</h3>
-                    <button onclick="submitAnswers()" class="px-6 py-2.5 rounded-xl bg-emerald-600 font-bold text-xs text-white hover:bg-emerald-500">Sınavı Bitir ve Değerlendir</button>
-                </div>
-                <div id="quiz-questions" class="space-y-4"></div>
-            </div>
-
-            <div id="results-box" class="hidden glass p-8 rounded-3xl border border-emerald-500/40 space-y-6">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+            <!-- Results Panel -->
+            <div id="quiz-result-panel" class="hidden glass p-8 rounded-3xl space-y-8 border border-brand-500/40">
+                <div class="glass p-6 rounded-3xl border border-slate-800 flex justify-between items-center">
                     <div>
-                        <h3 class="font-extrabold text-xl text-white">Sınav Karnesi</h3>
-                        <p class="text-xs text-slate-400">Node.js AI Değerlendirme Sonucu</p>
+                        <span class="bg-brand-500/20 text-brand-300 text-[10px] font-bold px-3 py-1 rounded-full uppercase">Sınav Karnesi</span>
+                        <h3 class="text-xl font-extrabold text-white mt-1">Değerlendirme Tamamlandı</h3>
                     </div>
-                    <div class="text-center bg-slate-900 px-6 py-3 rounded-2xl border border-slate-800">
-                        <div class="text-[10px] text-slate-400">Tahmini Yazılı Notu</div>
-                        <div id="final-grade" class="text-3xl font-black text-amber-400">0</div>
+                    <div class="text-center bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                        <div class="text-[10px] text-slate-400 uppercase">Tahmini Not</div>
+                        <div id="res-estimated-grade" class="text-3xl font-black text-amber-400 mt-0.5">100</div>
                     </div>
                 </div>
-                <div id="feedback-list" class="space-y-4"></div>
+                <div id="ai-feedback-list" class="space-y-4"></div>
             </div>
+        </section>
+
+        <!-- VIEW 2: DASHBOARD -->
+        <section id="view-dashboard" class="hidden p-4 md:p-8 max-w-6xl w-full mx-auto space-y-8">
+            <h3 class="font-bold text-white text-lg">Ana Panel</h3>
+            <p class="text-xs text-slate-400">Sistem istatistikleri ve genel özet.</p>
+        </section>
+
+        <!-- VIEW 3: ARCHIVE -->
+        <section id="view-archive" class="hidden p-4 md:p-8 max-w-6xl w-full mx-auto space-y-6">
+            <h3 class="font-bold text-white text-lg">Sınav Arşivi</h3>
+            <div id="archive-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+        </section>
+
+        <!-- VIEW 4: WRONG LOG -->
+        <section id="view-wrong-log" class="hidden p-4 md:p-8 max-w-6xl w-full mx-auto space-y-6">
+            <h3 class="font-bold text-white text-lg">Hata Defteri</h3>
+            <div id="wrong-log-container" class="space-y-4"></div>
         </section>
     </main>
 
     <script>
-        let currentQuizData = null;
-        let userAnswers = {};
+        const state = {
+            uploadedPdfFiles: [],
+            currentQuiz: null,
+            userAnswers: {},
+            archive: JSON.parse(localStorage.getItem('qc_archive') || '[]'),
+            wrongLog: JSON.parse(localStorage.getItem('qc_wrong_log') || '[]')
+        };
 
-        function log(msg) {
-            const el = document.getElementById('pipeline-logs');
-            el.innerHTML += `<div>> ${msg}</div>`;
-            el.scrollTop = el.scrollHeight;
+        function switchTab(tabId) {
+            ['create', 'dashboard', 'archive', 'wrong-log'].forEach(t => {
+                const view = document.getElementById(`view-${t}`);
+                if (view) view.classList.add('hidden');
+            });
+            const target = document.getElementById(`view-${tabId}`);
+            if (target) target.classList.remove('hidden');
         }
 
-        async function generateExam() {
-            const pdfFiles = document.getElementById('pdf-input').files;
-            const extraNotes = document.getElementById('notes-input').value.trim();
-            const qCount = document.getElementById('q-count').value;
+        async function handleMultipleFiles(event) {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+            for (const file of files) {
+                state.uploadedPdfFiles.push(file);
+            }
+            renderPdfFileList();
+        }
 
-            document.getElementById('pipeline-box').classList.remove('hidden');
-            document.getElementById('quiz-box').classList.add('hidden');
-            document.getElementById('results-box').classList.add('hidden');
-            document.getElementById('pipeline-logs').innerHTML = '';
+        function renderPdfFileList() {
+            const listEl = document.getElementById('pdf-file-list');
+            document.getElementById('pdf-count-badge').innerText = `${state.uploadedPdfFiles.length} PDF Yüklendi`;
+            listEl.innerHTML = '';
+            state.uploadedPdfFiles.forEach((f, idx) => {
+                listEl.innerHTML += `<div class="glass p-2 rounded-xl text-xs text-slate-200 flex justify-between items-center"><span>${f.name}</span></div>`;
+            });
+        }
+
+        function loadSampleData() {
+            document.getElementById('raw-text-input').value = "T.C. İnkılap Tarihi ve Atatürkçülük Örnek Notlar:\n- Mustafa Kemal'in doğumu ve okul hayatı.\n- Trablusgarp ve Balkan Savaşları.\n- I. Dünya Savaşı ve cepheler.";
+        }
+
+        async function startBackendPipeline() {
+            const extraNotes = document.getElementById('raw-text-input').value.trim();
+            const qCount = document.getElementById('question-count-slider').value;
+
+            document.getElementById('creation-form').classList.add('hidden');
+            document.getElementById('pipeline-progress-panel').classList.remove('hidden');
+            
+            const logsEl = document.getElementById('pipeline-logs');
+            const log = (m) => { logsEl.innerHTML += `<div>> ${m}</div>`; logsEl.scrollTop = logsEl.scrollHeight; };
 
             let combinedText = extraNotes;
 
-            if (pdfFiles.length > 0) {
-                log("PDF dosyaları Backend sunucusuna gönderiliyor...");
+            if (state.uploadedPdfFiles.length > 0) {
+                log("PDF dosyaları Backend sunucusuna yükleniyor...");
                 const formData = new FormData();
-                for (let f of pdfFiles) formData.append('pdfs', f);
-
+                state.uploadedPdfFiles.forEach(f => formData.append('pdfs', f));
                 try {
                     const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
                     const data = await res.json();
-                    if (data.text) {
-                        combinedText += '\n\n' + data.text;
-                        log("PDF içerikleri başarıyla metne çevrildi.");
-                    }
+                    if (data.text) combinedText += '\n\n' + data.text;
+                    log("PDF dosyaları sunucuda başarıyla okundu.");
                 } catch (e) {
-                    log("PDF ayrıştırma hatası: " + e.message);
+                    log("PDF okuma uyarısı: " + e.message);
                 }
             }
 
             if (!combinedText.trim()) {
-                alert("Lütfen en az bir PDF yükleyin ya da çalışma notu girin!");
-                document.getElementById('pipeline-box').classList.add('hidden');
+                alert("Lütfen materyal veya PDF ekleyin!");
+                document.getElementById('creation-form').classList.remove('hidden');
+                document.getElementById('pipeline-progress-panel').classList.add('hidden');
                 return;
             }
 
-            log("Ajan 1 (Gemini Backend Proxy) çağrılıyor...");
-            let summary = '';
+            log("Ajan 1 (Gemini) ile metin analiz ediliyor...");
+            let summary = combinedText;
             try {
                 const res = await fetch('/api/agent1-summary', {
                     method: 'POST',
@@ -190,26 +325,25 @@
                     body: JSON.stringify({ text: combinedText })
                 });
                 const data = await res.json();
-                summary = data.summary || combinedText;
-                log("Gemini özeti başarıyla alındı.");
+                if (data.summary) summary = data.summary;
+                log("Ajan 1 analiz tamamlandı.");
             } catch (e) {
-                log("Gemini API uyarısı, doğrudan metne geçiliyor...");
-                summary = combinedText;
+                log("Gemini proxy uyarısı, metin doğrudan kullanılıyor.");
             }
 
-            log(`Ajan 3 (Groq Backend Proxy) ile ${qCount} soru üretiliyor...`);
-            const prompt = `Ders materyalini analiz et ve ${qCount} adet çoktan seçmeli Türkçe soru üret.
+            log(`Ajan 3 (Groq) ile ${qCount} soru üretiliyor...`);
+            const prompt = `Analiz edilen materyale dayanarak ${qCount} adet çoktan seçmeli Türkçe sınav sorusu üret.
 Materyal: "${summary.substring(0, 2500)}"
-Yalnızca şu JSON formatını döndür:
+Yalnızca şu JSON formatını döndür, başka hiçbir şey yazma:
 {
-  "title": "Sınav Başlığı",
+  "title": "Üretilen Sınav Başlığı",
   "questions": [
     {
       "id": 1,
       "question": "Soru metni?",
       "options": ["Şık A", "Şık B", "Şık C", "Şık D"],
       "correctAnswer": 0,
-      "explanation": "Detaylı çözüm açıklaması"
+      "explanation": "Açıklama"
     }
   ]
 }`;
@@ -223,84 +357,88 @@ Yalnızca şu JSON formatını döndür:
                 const data = await res.json();
                 if (data.result) {
                     const cleaned = data.result.replace(/```json/g, '').replace(/```/g, '').trim();
-                    currentQuizData = JSON.parse(cleaned);
-                    log(`Soru üretimi tamamlandı! (Kullanılan Model: ${data.modelUsed})`);
-                    renderQuiz(currentQuizData);
+                    state.currentQuiz = JSON.parse(cleaned);
+                    log("Sorular başarıyla oluşturuldu! Sınav ekranına geçiliyor...");
+                    setTimeout(() => renderQuiz(state.currentQuiz), 1000);
                 } else {
                     throw new Error(data.error);
                 }
             } catch (e) {
-                log("Groq API Hatası: " + e.message);
-                alert("API Hatası: " + e.message);
+                log("Hata: " + e.message);
+                alert("Soru üretilirken bir hata oluştu: " + e.message);
+                document.getElementById('creation-form').classList.remove('hidden');
+                document.getElementById('pipeline-progress-panel').classList.add('hidden');
             }
         }
 
         function renderQuiz(quiz) {
-            document.getElementById('pipeline-box').classList.add('hidden');
-            document.getElementById('quiz-box').classList.remove('hidden');
-            document.getElementById('quiz-title').innerText = quiz.title || "Özel Deneme Sınavı";
+            document.getElementById('pipeline-progress-panel').classList.add('hidden');
+            document.getElementById('quiz-taking-panel').classList.remove('hidden');
+            document.getElementById('quiz-title-display').innerText = quiz.title || "Deneme Sınavı";
 
-            const container = document.getElementById('quiz-questions');
-            container.innerHTML = '';
-            userAnswers = {};
+            const listEl = document.getElementById('quiz-questions-list');
+            listEl.innerHTML = '';
+            state.userAnswers = {};
 
             quiz.questions.forEach((q, idx) => {
-                const div = document.createElement('div');
-                div.className = 'glass p-6 rounded-2xl border border-slate-800 space-y-3';
-                
-                let optsHTML = q.options.map((opt, oIdx) => `
-                    <button onclick="selectOpt(${q.id}, ${oIdx})" id="q-${q.id}-opt-${oIdx}" class="w-full text-left p-3 rounded-xl border border-slate-800 bg-slate-900 text-xs text-slate-300 hover:border-brand-500 transition-all">
-                        ${['A', 'B', 'C', 'D'][oIdx]}) ${opt}
-                    </button>
-                `).join('');
+                let optsHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">`;
+                q.options.forEach((opt, oIdx) => {
+                    optsHTML += `
+                        <button type="button" onclick="selectAnswer(${q.id}, ${oIdx})" id="q-${q.id}-opt-${oIdx}" class="p-3.5 rounded-2xl border border-slate-800 bg-slate-900 text-left text-xs text-slate-200 hover:border-brand-500 transition-all flex items-center gap-3">
+                            <span class="w-7 h-7 rounded-xl bg-slate-800 font-bold flex items-center justify-center text-slate-300 text-xs">${['A', 'B', 'C', 'D'][oIdx]}</span>
+                            <span>${opt}</span>
+                        </button>
+                    `;
+                });
+                optsHTML += `</div>`;
 
-                div.innerHTML = `
-                    <div class="text-xs font-bold text-brand-400">Soru ${idx + 1}</div>
-                    <div class="font-semibold text-sm text-white">${q.question}</div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">${optsHTML}</div>
+                listEl.innerHTML += `
+                    <div class="glass p-6 rounded-3xl space-y-4 border border-slate-800">
+                        <span class="text-xs font-bold text-brand-400 bg-brand-500/10 px-3 py-1 rounded-full">Soru ${idx + 1}</span>
+                        <p class="font-bold text-slate-100 text-sm">${q.question}</p>
+                        ${optsHTML}
+                    </div>
                 `;
-                container.appendChild(div);
             });
         }
 
-        function selectOpt(qId, oIdx) {
-            userAnswers[qId] = oIdx;
-            document.querySelectorAll(`[id^="q-${qId}-opt-"]`).forEach((b, idx) => {
-                b.className = idx === oIdx 
-                    ? 'w-full text-left p-3 rounded-xl border border-brand-500 bg-brand-500/20 text-xs text-white font-bold'
-                    : 'w-full text-left p-3 rounded-xl border border-slate-800 bg-slate-900 text-xs text-slate-300 opacity-60';
+        function selectAnswer(qId, oIdx) {
+            state.userAnswers[qId] = oIdx;
+            document.querySelectorAll(`[id^="q-${qId}-opt-"]`).forEach((btn, idx) => {
+                btn.className = idx === oIdx 
+                    ? 'p-3.5 rounded-2xl border border-brand-500 bg-brand-500/20 text-left text-xs text-white font-semibold flex items-center gap-3'
+                    : 'p-3.5 rounded-2xl border border-slate-800 bg-slate-900 text-left text-xs text-slate-200 opacity-60 flex items-center gap-3';
             });
         }
 
-        function submitAnswers() {
-            if (!currentQuizData) return;
-            let correct = 0;
-            const container = document.getElementById('feedback-list');
-            container.innerHTML = '';
+        function finishQuizSubmit() {
+            const quiz = state.currentQuiz;
+            let correctCount = 0;
+            const feedbackEl = document.getElementById('ai-feedback-list');
+            feedbackEl.innerHTML = '';
 
-            currentQuizData.questions.forEach((q, idx) => {
-                const uAns = userAnswers[q.id];
-                const isCorrect = uAns === q.correctAnswer;
-                if (isCorrect) correct++;
+            quiz.questions.forEach((q, idx) => {
+                const userAns = state.userAnswers[q.id];
+                const isCorrect = userAns === q.correctAnswer;
+                if (isCorrect) correctCount++;
 
-                const div = document.createElement('div');
-                div.className = `glass p-4 rounded-xl border ${isCorrect ? 'border-emerald-500/40' : 'border-rose-500/40'} space-y-1 text-xs`;
-                div.innerHTML = `
-                    <div class="font-bold ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}">Soru ${idx + 1}: ${isCorrect ? '✓ Doğru' : '✗ Yanlış'}</div>
-                    <div class="text-white font-medium">${q.question}</div>
-                    <div class="text-slate-400">Doğru Cevap: <span class="text-emerald-400">${q.options[q.correctAnswer]}</span></div>
-                    <div class="text-slate-400">Açıklama: ${q.explanation}</div>
+                feedbackEl.innerHTML += `
+                    <div class="glass p-5 rounded-2xl border ${isCorrect ? 'border-emerald-500/30' : 'border-rose-500/30'} space-y-2 text-xs">
+                        <div class="font-bold ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}">Soru ${idx + 1}: ${isCorrect ? '✓ Doğru' : '✗ Yanlış'}</div>
+                        <p class="font-bold text-white">${q.question}</p>
+                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                            <div><b class="text-emerald-400">Doğru Cevap:</b> ${q.options[q.correctAnswer]}</div>
+                            <div><b class="text-brand-400">Açıklama:</b> ${q.explanation}</div>
+                        </div>
+                    </div>
                 `;
-                container.appendChild(div);
             });
 
-            const grade = Math.round((correct / currentQuizData.questions.length) * 100);
-            document.getElementById('final-grade').innerText = grade;
-
-            document.getElementById('quiz-box').classList.add('hidden');
-            document.getElementById('results-box').classList.remove('hidden');
-
-            if (grade >= 70 && window.confetti) confetti();
+            const score = Math.round((correctCount / quiz.questions.length) * 100);
+            document.getElementById('res-estimated-grade').innerText = score;
+            document.getElementById('quiz-taking-panel').classList.add('hidden');
+            document.getElementById('quiz-result-panel').classList.remove('hidden');
+            if (score >= 70 && window.confetti) confetti();
         }
     </script>
 </body>
