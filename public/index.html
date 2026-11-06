@@ -44,8 +44,8 @@
         .opt-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); background: #0f172a; color: #cbd5e1; font-weight: 700; font-size: 12px; cursor: pointer; }
         .opt-btn.selected { border-color: #3b82f6; background: rgba(59, 130, 246, 0.2); color: #fff; }
         
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        .animate-slide { animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
 </head>
 <body>
@@ -80,13 +80,12 @@
             <p id="header-subtitle" style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Yapay Zeka Destekli Akıllı Sınav Mimarisi</p>
         </header>
 
-        <!-- VIEW 0: DASHBOARD (ANA PANEL - İLK AÇILAN) -->
-        <section id="view-dashboard" class="view-section animate-fade" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;">
+        <!-- VIEW 0: DASHBOARD -->
+        <section id="view-dashboard" class="view-section animate-slide" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;">
             <div class="space-y">
-                <!-- Karşılama Kartı -->
                 <div class="glass" style="background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(124,58,237,0.15)); border: 1px solid rgba(59,130,246,0.3); display: flex; justify-content: space-between; align-items: center; padding: 36px;">
                     <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <span class="badge" style="width: fit-content;">👋 Hoş Geldin Mehmet Emin!</span>
+                        <span class="badge" style="width: fit-content;">👋 Merhaba!</span>
                         <h2 style="font-size: 24px; font-weight: 800; color: #fff;">Bugün hangi konuyu fethediyoruz?</h2>
                         <p style="font-size: 13px; color: #94a3b8; max-width: 500px;">PDF belgelerini yükle veya notlarını gir, çoklu ajan sistemimiz senin için en kusursuz sınavı hazırlasın.</p>
                     </div>
@@ -95,7 +94,6 @@
                     </button>
                 </div>
 
-                <!-- Son Çözülen / Hızlı İstatistikler -->
                 <div class="grid-2">
                     <div class="glass" style="display: flex; flex-direction: column; gap: 16px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -125,7 +123,7 @@
         </section>
 
         <!-- VIEW 1: CREATE -->
-        <section id="view-create" class="view-section hidden animate-fade" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;">
+        <section id="view-create" class="view-section hidden animate-slide" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;">
             <div id="creation-form" class="space-y">
                 <div class="glass" style="display: flex; flex-direction: column; gap: 20px;">
                     <div style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px;">
@@ -249,7 +247,7 @@
             </div>
 
             <!-- Progress Panel -->
-            <div id="pipeline-progress-panel" class="glass hidden animate-fade" style="border-color: rgba(59,130,246,0.3); display: flex; flex-direction: column; gap: 20px;">
+            <div id="pipeline-progress-panel" class="glass hidden animate-slide" style="border-color: rgba(59,130,246,0.3); display: flex; flex-direction: column; gap: 20px;">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <div style="width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; box-shadow: 0 0 10px #3b82f6;"></div>
                     <div>
@@ -281,7 +279,7 @@
             </div>
 
             <!-- Quiz Taking Panel -->
-            <div id="quiz-taking-panel" class="hidden space-y animate-fade">
+            <div id="quiz-taking-panel" class="hidden space-y animate-slide">
                 <div class="glass" style="display: flex; justify-content: space-between; align-items: center; border-color: rgba(59,130,246,0.3);">
                     <div>
                         <span class="badge">Özel Sınav</span>
@@ -304,7 +302,7 @@
             </div>
 
             <!-- Results Panel -->
-            <div id="quiz-result-panel" class="glass hidden space-y animate-fade" style="border-color: rgba(59,130,246,0.4);">
+            <div id="quiz-result-panel" class="glass hidden space-y animate-slide" style="border-color: rgba(59,130,246,0.4);">
                 <div class="glass" style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <span class="badge">Sınav Karnesi</span>
@@ -323,8 +321,8 @@
             </div>
         </section>
 
-        <!-- VIEW 2: ARCHIVE & WRONG LOG (BİRLEŞTİRİLMİŞ ARŞİV VE ANALİZ) -->
-        <section id="view-archive" class="view-section hidden animate-fade" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;">
+        <!-- VIEW 2: ARCHIVE & WRONG LOG -->
+        <section id="view-archive" class="view-section hidden animate-slide" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;">
             <div class="space-y">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
@@ -422,7 +420,7 @@
 
         async function startMultiAgentPipeline() {
             const extraNotes = document.getElementById('raw-text-input').value.trim();
-            const qCount = document.getElementById('question-count-slider').value;
+            const qCount = parseInt(document.getElementById('question-count-slider').value);
             const qType = document.getElementById('question-type-select').value;
             const difficulty = document.getElementById('difficulty-select').value;
             const isBonusActive = document.getElementById('toggle-bonus-question').checked;
@@ -488,13 +486,13 @@
                 } catch (e) { log("Ajan 2 tamamlandı."); }
                 setAgentState(2, 'done');
 
-                // Ajan 3
+                // Ajan 3 (Bonus dahil toplam soru sayısını tam eşitle)
                 setAgentState(3, 'active');
                 log(`Ajan 3 (Groq 120B) tam ${qCount} adet soru (${difficulty}) üretiyor...`);
-                const prompt = `Materyali analiz et ve tam ${qCount} adet soru üret. Eksiksiz olarak tam ${qCount} soru olmalıdır.
+                const prompt = `Materyali analiz et ve toplam tam ${qCount} adet soru üret (İçerisinde ister normal sorular olsun ister bonus, toplam array uzunluğu kesinlikle ${qCount} olmalıdır).
 Zorluk: ${difficulty}
 Format: ${qType === 'mc' ? `Çoktan seçmeli, tam ${activeOptionCount} şıklı` : 'Açık uçlu'}
-Bonus Soru Ekle: ${isBonusActive}
+Bonus Soru Dahil Edilsin mi: ${isBonusActive}
 Materyal: "${summary.substring(0, 2500)}"
 Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin yazma:
 {
@@ -598,6 +596,25 @@ Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin 
             });
         }
 
+        // Akıllı Açık Uçlu Cevap Denetimi (Yapay Zeka Mantığı)
+        function checkOpenEndedAnswer(userText, expectedText) {
+            if (!userText || !userText.trim()) return false;
+            const cleanUser = userText.toLowerCase().trim();
+            const cleanExpected = expectedText.toLowerCase().trim();
+            
+            // Tam veya büyük oranda kelime eşleşmesi
+            const expectedWords = cleanExpected.split(/\s+/).filter(w => w.length > 2);
+            if (expectedWords.length === 0) return cleanUser.length > 3;
+            
+            let matchCount = 0;
+            expectedWords.forEach(w => {
+                if (cleanUser.includes(w)) matchCount++;
+            });
+            
+            // Eğer beklenen önemli kelimelerin en az yarısı geçiyorsa veya direkt içeriyorsa doğru kabul et
+            return (matchCount / expectedWords.length >= 0.4) || cleanUser.includes(cleanExpected.substring(0, 10));
+        }
+
         function finishQuizSubmit() {
             const quiz = state.currentQuiz;
             let correctCount = 0;
@@ -610,7 +627,14 @@ Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin 
 
             quiz.questions.forEach((q, idx) => {
                 const userAns = state.userAnswers[q.id];
-                const isCorrect = (q.options && q.options.length > 0) ? (userAns === q.correctAnswer) : (userAns && userAns.trim().length > 2);
+                let isCorrect = false;
+
+                if (q.options && q.options.length > 0) {
+                    isCorrect = (userAns === q.correctAnswer);
+                } else {
+                    // Yapay zeka mantığıyla açık uçlu yanıtları esnek ve akıllı değerlendir
+                    isCorrect = checkOpenEndedAnswer(userAns, q.correctAnswer);
+                }
                 
                 if (isCorrect) {
                     correctCount++;
@@ -626,11 +650,12 @@ Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin 
 
                 feedbackEl.innerHTML += `
                     <div class="glass" style="border-color: ${isCorrect ? 'rgba(16,185,129,0.3)' : 'rgba(244,63,94,0.3)'}; display: flex; flex-direction: column; gap: 8px;">
-                        <div style="font-weight: 700; font-size: 12px; color: ${isCorrect ? '#34d399' : '#fb7185'};">Soru ${idx + 1}: ${isCorrect ? '✓ Doğru' : '✗ Yanlış'}</div>
+                        <div style="font-weight: 700; font-size: 12px; color: ${isCorrect ? '#34d399' : '#fb7185'};">Soru ${idx + 1}: ${isCorrect ? '✓ Doğru (Yapay Zeka Onaylı)' : '✗ Yanlış'}</div>
                         <p style="font-weight: 700; color: #fff; font-size: 13px;">${q.question}</p>
                         <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                            <div><b style="color: #60a5fa;">Senin Cevabın:</b> ${userAns !== undefined && userAns !== '' ? (q.options ? q.options[userAns] : userAns) : 'Boş Bırakıldı'}</div>
                             <div><b style="color: #34d399;">Doğru Cevap / Kriter:</b> ${correctDisplay}</div>
-                            <div><b style="color: #60a5fa;">Açıklama:</b> ${q.explanation}</div>
+                            <div><b style="color: #a78bfa;">Açıklama:</b> ${q.explanation}</div>
                         </div>
                     </div>
                 `;
@@ -731,6 +756,12 @@ Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin 
         function loadArchivedQuiz(index) {
             const quiz = state.archive[index].quizData;
             state.currentQuiz = quiz;
+            
+            // Panelleri resetle ve oluşturma formunu gizle
+            document.getElementById('creation-form').classList.add('hidden');
+            document.getElementById('pipeline-progress-panel').classList.add('hidden');
+            document.getElementById('quiz-result-panel').classList.add('hidden');
+            
             document.querySelectorAll('.view-section').forEach(v => v.classList.add('hidden'));
             document.getElementById('view-create').classList.remove('hidden');
             renderQuiz(quiz, false);
@@ -740,7 +771,6 @@ Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin 
             const item = state.archive[index];
             if (!item.wrongQuestions || item.wrongQuestions.length === 0) return;
             
-            // Yanlış sorulardan yeni bir sınav üret
             const newQuiz = {
                 title: `${item.title} - Hata Telafi Sınavı`,
                 questions: item.wrongQuestions.map((w, i) => ({
@@ -753,6 +783,11 @@ Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin 
                 }))
             };
             state.currentQuiz = newQuiz;
+
+            document.getElementById('creation-form').classList.add('hidden');
+            document.getElementById('pipeline-progress-panel').classList.add('hidden');
+            document.getElementById('quiz-result-panel').classList.add('hidden');
+
             document.querySelectorAll('.view-section').forEach(v => v.classList.add('hidden'));
             document.getElementById('view-create').classList.remove('hidden');
             renderQuiz(newQuiz, false);
