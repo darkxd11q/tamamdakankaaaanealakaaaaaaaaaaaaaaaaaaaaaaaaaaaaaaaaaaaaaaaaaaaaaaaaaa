@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QuizCraft AI Pro - Akıllı Çoklu Ajan Sınav Mimarisi</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -18,9 +18,9 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)">
+    <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap)" rel="stylesheet">
+    <script src="[https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js](https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js)"></script>
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .glass { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
@@ -45,17 +45,17 @@
         </div>
 
         <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
-            <button onclick="switchTab('create')" id="nav-create" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-white bg-gradient-to-r from-brand-600 to-brand-700 shadow-lg">
+            <button onclick="switchTab('create')" id="nav-create" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-white bg-gradient-to-r from-brand-600 to-brand-700 shadow-lg">
                 <i class="fa-solid fa-wand-magic-sparkles text-lg text-brand-200 w-5"></i> Sınav Oluştur
             </button>
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-300 hover:bg-slate-800/60 hover:text-white">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-300 hover:bg-slate-800/60 hover:text-white">
                 <i class="fa-solid fa-chart-pie text-lg text-brand-500 w-5"></i> Ana Panel
             </button>
-            <button onclick="switchTab('archive')" id="nav-archive" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-300 hover:bg-slate-800/60 hover:text-white">
-                <i class="fa-solid fa-box-archive text-lg text-accent-purple w-5"></i> Sınav Arşivi
+            <button onclick="switchTab('archive')" id="nav-archive" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-300 hover:bg-slate-800/60 hover:text-white">
+                <i class="fa-solid fa-box-archive text-lg text-accent-purple w-5"></i> Sınav Arşivi <span id="archive-badge" class="ml-auto bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded-full">0</span>
             </button>
-            <button onclick="switchTab('wrong-log')" id="nav-wrong-log" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-300 hover:bg-slate-800/60 hover:text-white">
-                <i class="fa-solid fa-book-bookmark text-lg text-rose-400 w-5"></i> Hata Defteri
+            <button onclick="switchTab('wrong-log')" id="nav-wrong-log" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-300 hover:bg-slate-800/60 hover:text-white">
+                <i class="fa-solid fa-book-bookmark text-lg text-rose-400 w-5"></i> Hata Defteri <span id="wrong-badge" class="ml-auto bg-rose-500/20 text-rose-300 text-xs px-2 py-0.5 rounded-full">0</span>
             </button>
         </nav>
     </aside>
@@ -64,13 +64,13 @@
     <main class="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto custom-scrollbar">
         <header class="hidden md:flex items-center justify-between px-8 py-4 border-b border-slate-800/80 bg-slate-900/40 backdrop-blur sticky top-0 z-30">
             <div>
-                <h2 class="font-bold text-lg text-white">Sınav Oluşturucu</h2>
-                <p class="text-xs text-slate-400">Çoklu PDF + Özel Not Analizör ve Derin Düşünme Bütçeli Ajan Sistemi</p>
+                <h2 id="header-title" class="font-bold text-lg text-white">Sınav Oluşturucu</h2>
+                <p id="header-subtitle" class="text-xs text-slate-400">Çoklu PDF + Özel Not Analizör ve Derin Düşünme Bütçeli Ajan Sistemi</p>
             </div>
         </header>
 
         <!-- VIEW 1: CREATE -->
-        <section id="view-create" class="p-4 md:p-8 max-w-6xl w-full mx-auto space-y-8">
+        <section id="view-create" class="view-section p-4 md:p-8 max-w-6xl w-full mx-auto space-y-8">
             <div id="creation-form" class="space-y-6">
                 <!-- PDF & Notes Panel -->
                 <div class="glass p-6 rounded-3xl space-y-6 border border-slate-800">
@@ -287,287 +287,4 @@
                         <div id="res-estimated-grade" class="text-3xl font-black text-amber-400 mt-0.5">100</div>
                     </div>
                 </div>
-                <div id="ai-feedback-list" class="space-y-4"></div>
-            </div>
-        </section>
-
-        <!-- Other Views -->
-        <section id="view-dashboard" class="hidden p-8 max-w-6xl w-full mx-auto space-y-6"><h3 class="font-bold text-white text-lg">Ana Panel</h3></section>
-        <section id="view-archive" class="hidden p-8 max-w-6xl w-full mx-auto space-y-6"><h3 class="font-bold text-white text-lg">Sınav Arşivi</h3></section>
-        <section id="view-wrong-log" class="hidden p-8 max-w-6xl w-full mx-auto space-y-6"><h3 class="font-bold text-white text-lg">Hata Defteri</h3></section>
-    </main>
-
-    <script>
-        let activeOptionCount = 4;
-        const state = { uploadedPdfFiles: [], currentQuiz: null, userAnswers: {} };
-
-        function switchTab(tabId) {
-            ['create', 'dashboard', 'archive', 'wrong-log'].forEach(t => {
-                const view = document.getElementById(`view-${t}`);
-                if (view) view.classList.add('hidden');
-            });
-            const target = document.getElementById(`view-${tabId}`);
-            if (target) target.classList.remove('hidden');
-        }
-
-        function setOptionCount(count) {
-            activeOptionCount = count;
-            document.querySelectorAll('.opt-btn').forEach(btn => {
-                if (parseInt(btn.getAttribute('data-val')) === count) {
-                    btn.className = 'opt-btn py-2.5 rounded-xl border border-brand-500 bg-brand-500/20 text-xs font-bold text-white';
-                } else {
-                    btn.className = 'opt-btn py-2.5 rounded-xl border border-slate-800 bg-slate-900 text-xs font-bold text-slate-300';
-                }
-            });
-        }
-
-        function toggleOptionCountContainer() {
-            const val = document.getElementById('question-type-select').value;
-            const container = document.getElementById('option-count-container');
-            container.style.opacity = val === 'open' ? '0.3' : '1';
-            container.style.pointerEvents = val === 'open' ? 'none' : 'auto';
-        }
-
-        async function handleMultipleFiles(event) {
-            const files = Array.from(event.target.files);
-            if (!files.length) return;
-            files.forEach(f => state.uploadedPdfFiles.push(f));
-            document.getElementById('pdf-count-badge').innerText = `${state.uploadedPdfFiles.length} PDF Yüklendi`;
-            const listEl = document.getElementById('pdf-file-list');
-            listEl.innerHTML = '';
-            state.uploadedPdfFiles.forEach(f => {
-                listEl.innerHTML += `<div class="glass p-2 rounded-xl text-xs text-slate-200 flex justify-between items-center"><span>${f.name}</span></div>`;
-            });
-        }
-
-        function loadSampleData() {
-            document.getElementById('raw-text-input').value = "T.C. İnkılap Tarihi ve Atatürkçülük Notları:\n1. Mustafa Kemal'in doğumu, Selanik ve Manastır dönemi.\n2. Trablusgarp ve Balkan Savaşları.\n3. I. Dünya Savaşı cepheleri ve Çanakkale Zaferi.";
-        }
-
-        function setAgentState(step, state) {
-            const card = document.getElementById(`agent-card-${step}`);
-            if (!card) return;
-            if (state === 'active') {
-                card.classList.remove('opacity-50');
-                card.classList.add('agent-active');
-            } else if (state === 'done') {
-                card.classList.remove('agent-active');
-                card.style.borderColor = '#10b981';
-            }
-        }
-
-        async function startMultiAgentPipeline() {
-            const extraNotes = document.getElementById('raw-text-input').value.trim();
-            const qCount = document.getElementById('question-count-slider').value;
-            const qType = document.getElementById('question-type-select').value;
-            const difficulty = document.getElementById('difficulty-select').value;
-            const isBonusActive = document.getElementById('toggle-bonus-question').checked;
-            const isDuelActive = document.getElementById('toggle-duel-mode').checked;
-
-            document.getElementById('creation-form').classList.add('hidden');
-            document.getElementById('pipeline-progress-panel').classList.remove('hidden');
-
-            const logsEl = document.getElementById('pipeline-logs');
-            const log = (m) => { logsEl.innerHTML += `<div>> ${m}</div>`; logsEl.scrollTop = logsEl.scrollHeight; };
-
-            try {
-                let combinedText = extraNotes;
-                if (state.uploadedPdfFiles.length > 0) {
-                    log("PDF dosyaları Backend sunucusuna yükleniyor...");
-                    const formData = new FormData();
-                    state.uploadedPdfFiles.forEach(f => formData.append('pdfs', f));
-                    try {
-                        const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
-                        const textData = await res.text();
-                        const data = JSON.parse(textData);
-                        if (data.text) combinedText += '\n\n' + data.text;
-                        log("PDF metinleri sunucuda başarıyla okundu.");
-                    } catch (e) { log("PDF okuma uyarısı: " + e.message); }
-                }
-
-                if (!combinedText.trim()) {
-                    alert("Lütfen materyal veya PDF ekleyin!");
-                    document.getElementById('creation-form').classList.remove('hidden');
-                    document.getElementById('pipeline-progress-panel').classList.add('hidden');
-                    return;
-                }
-
-                // Ajan 1
-                setAgentState(1, 'active');
-                log("Ajan 1 (Gemini) materyali analiz ediyor...");
-                let summary = combinedText;
-                try {
-                    const res = await fetch('/api/agent1-analyst', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: combinedText })
-                    });
-                    const textData = await res.text();
-                    const data = JSON.parse(textData);
-                    if (data.result) summary = data.result;
-                    log("Ajan 1 analizi tamamlandı.");
-                } catch (e) { log("Gemini uyarısı, metin doğrudan kullanılıyor."); }
-                setAgentState(1, 'done');
-
-                // Ajan 2
-                setAgentState(2, 'active');
-                log("Ajan 2 (Groq 8B) senaryoyu hazırlıyor...");
-                let scenarioTitle = "Özel Deneme Sınavı";
-                try {
-                    const res = await fetch('/api/agent2-scenario', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ summary })
-                    });
-                    const textData = await res.text();
-                    const data = JSON.parse(textData);
-                    const parsed = JSON.parse(data.result);
-                    if (parsed.title) scenarioTitle = parsed.title;
-                    log(`Ajan 2 Senaryo: "${scenarioTitle}"`);
-                } catch (e) { log("Ajan 2 tamamlandı."); }
-                setAgentState(2, 'done');
-
-                // Ajan 3
-                setAgentState(3, 'active');
-                log(`Ajan 3 (Groq 70B) ${qCount} soru (${difficulty}) üretiyor...`);
-                const prompt = `Materyali analiz et ve tam ${qCount} adet soru üret.
-Zorluk: ${difficulty}
-Format: ${qType === 'mc' ? `Çoktan seçmeli, tam ${activeOptionCount} şıklı` : 'Açık uçlu'}
-Bonus Soru Ekle: ${isBonusActive}
-Materyal: "${summary.substring(0, 2500)}"
-Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin yazma:
-{
-  "title": "${scenarioTitle}",
-  "questions": [
-    {
-      "id": 1,
-      "question": "Soru metni?",
-      "options": ${qType === 'mc' ? `["Şık A", "Şık B", "Şık C", "Şık D"]` : `[]`},
-      "correctAnswer": ${qType === 'mc' ? 0 : `"Cevap"`},
-      "explanation": "Açıklama",
-      "isBonus": false
-    }
-  ]
-}`;
-
-                const res = await fetch('/api/agent3-generator', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt })
-                });
-                const textData = await res.text();
-                const data = JSON.parse(textData);
-                
-                let cleaned = data.result.trim();
-                if (cleaned.includes('```json')) {
-                    cleaned = cleaned.split('```json')[1].split('```')[0].trim();
-                } else if (cleaned.includes('```')) {
-                    cleaned = cleaned.split('```')[1].split('```')[0].trim();
-                }
-
-                state.currentQuiz = JSON.parse(cleaned);
-                log("Ajan 3 soruları başarıyla üretti.");
-                setAgentState(3, 'done');
-
-                // Ajan 4
-                setAgentState(4, 'active');
-                log("Ajan 4 (Değerlendirici) kalite kontrolü yapıyor...");
-                await fetch('/api/agent4-evaluator', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quizData: state.currentQuiz }) });
-                log("Ajan 4 onayladı. Sınav ekranına geçiliyor...");
-                setAgentState(4, 'done');
-
-                setTimeout(() => renderQuiz(state.currentQuiz, isDuelActive), 1000);
-
-            } catch (err) {
-                console.error(err);
-                alert("Boru hattında bir hata oluştu: " + err.message);
-                document.getElementById('creation-form').classList.remove('hidden');
-                document.getElementById('pipeline-progress-panel').classList.add('hidden');
-            }
-        }
-
-        function renderQuiz(quiz, isDuelActive) {
-            document.getElementById('pipeline-progress-panel').classList.add('hidden');
-            document.getElementById('quiz-taking-panel').classList.remove('hidden');
-            document.getElementById('quiz-title-display').innerText = quiz.title || "Deneme Sınavı";
-
-            if (isDuelActive) {
-                document.getElementById('duel-rival-box').classList.remove('hidden');
-            }
-
-            const listEl = document.getElementById('quiz-questions-list');
-            listEl.innerHTML = '';
-            state.userAnswers = {};
-
-            quiz.questions.forEach((q, idx) => {
-                let inputHTML = '';
-                if (q.options && q.options.length > 0) {
-                    inputHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">`;
-                    q.options.forEach((opt, oIdx) => {
-                        inputHTML += `
-                            <button type="button" onclick="selectAnswer(${q.id}, ${oIdx})" id="q-${q.id}-opt-${oIdx}" class="p-3.5 rounded-2xl border border-slate-800 bg-slate-900 text-left text-xs text-slate-200 hover:border-brand-500 transition-all flex items-center gap-3">
-                                <span class="w-7 h-7 rounded-xl bg-slate-800 font-bold flex items-center justify-center text-slate-300 text-xs">${['A', 'B', 'C', 'D', 'E'][oIdx]}</span>
-                                <span>${opt}</span>
-                            </button>
-                        `;
-                    });
-                    inputHTML += `</div>`;
-                } else {
-                    inputHTML = `<textarea onchange="state.userAnswers[${q.id}] = this.value" rows="3" class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-slate-200 focus:outline-none focus:border-brand-500" placeholder="Açık uçlu cevabınızı buraya yazın..."></textarea>`;
-                }
-
-                listEl.innerHTML += `
-                    <div class="glass p-6 rounded-3xl space-y-4 border ${q.isBonus ? 'border-amber-500/50 bg-amber-950/10' : 'border-slate-800'}">
-                        <span class="text-xs font-bold ${q.isBonus ? 'text-amber-400 bg-amber-500/20' : 'text-brand-400 bg-brand-500/15'} px-3 py-1 rounded-full">
-                            ${q.isBonus ? '🌟 BONUS SORU (+15 BP)' : 'Soru ' + (idx + 1)}
-                        </span>
-                        <p class="font-bold text-slate-100 text-sm">${q.question}</p>
-                        ${inputHTML}
-                    </div>
-                `;
-            });
-        }
-
-        function selectAnswer(qId, oIdx) {
-            state.userAnswers[qId] = oIdx;
-            document.querySelectorAll(`[id^="q-${qId}-opt-"]`).forEach((btn, idx) => {
-                btn.className = idx === oIdx 
-                    ? 'p-3.5 rounded-2xl border border-brand-500 bg-brand-500/20 text-left text-xs text-white font-semibold flex items-center gap-3'
-                    : 'p-3.5 rounded-2xl border border-slate-800 bg-slate-900 text-left text-xs text-slate-200 opacity-60 flex items-center gap-3';
-            });
-        }
-
-        function finishQuizSubmit() {
-            const quiz = state.currentQuiz;
-            let correctCount = 0;
-            const feedbackEl = document.getElementById('ai-feedback-list');
-            feedbackEl.innerHTML = '';
-
-            if (!quiz || !quiz.questions) return;
-
-            quiz.questions.forEach((q, idx) => {
-                const userAns = state.userAnswers[q.id];
-                const isCorrect = (q.options && q.options.length > 0) ? (userAns === q.correctAnswer) : (userAns && userAns.trim().length > 2);
-                if (isCorrect) correctCount++;
-
-                feedbackEl.innerHTML += `
-                    <div class="glass p-5 rounded-2xl border ${isCorrect ? 'border-emerald-500/30' : 'border-rose-500/30'} space-y-2 text-xs">
-                        <div class="font-bold ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}">Soru ${idx + 1}: ${isCorrect ? '✓ Doğru' : '✗ Yanlış'}</div>
-                        <p class="font-bold text-white">${q.question}</p>
-                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
-                            <div><b class="text-emerald-400">Doğru Cevap:</b> ${q.options ? q.options[q.correctAnswer] : q.correctAnswer}</div>
-                            <div><b class="text-brand-400">Açıklama:</b> ${q.explanation}</div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            const score = Math.round((correctCount / quiz.questions.length) * 100);
-            document.getElementById('res-estimated-grade').innerText = score;
-            document.getElementById('quiz-taking-panel').classList.add('hidden');
-            document.getElementById('quiz-result-panel').classList.remove('hidden');
-            if (score >= 70 && window.confetti) confetti();
-        }
-    </script>
-</body>
-</html>
+                <div id="ai-feedback-list" class="space-y-

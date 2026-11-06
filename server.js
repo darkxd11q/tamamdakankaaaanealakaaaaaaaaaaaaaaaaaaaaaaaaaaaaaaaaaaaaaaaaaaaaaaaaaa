@@ -46,11 +46,11 @@ app.post('/api/agent1-analyst', async (req, res) => {
 
     for (const model of models) {
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+            const response = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){model}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: `Aşağıdaki ders materyalini analiz ederek pedagojik özet çıkar:\n"${text.substring(0, 4000)}"` }] }]
+                    contents: [{ parts: [{ text: `Aşağıdaki ders materyalini analiz ederek detaylı bir özet çıkar:\n"${text.substring(0, 4000)}"` }] }]
                 })
             });
             if (response.ok) {
@@ -68,29 +68,32 @@ app.post('/api/agent2-scenario', async (req, res) => {
     const { summary } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
     try {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const response = await fetch('[https://api.groq.com/openai/v1/chat/completions](https://api.groq.com/openai/v1/chat/completions)', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
                 model: 'llama-3.1-8b-instant',
-                messages: [{ role: 'user', content: `Bu materyal için kısa bir sınav başlığı belirle. Yalnızca JSON döndür: {"title": "Başlık"}. Materyal: "${summary.substring(0, 1000)}"` }],
+                messages: [{ role: 'user', content: `Bu materyal için akıllı bir sınav başlığı belirle. Yalnızca ham JSON döndür: {"title": "Başlık"}. Materyal: "${summary.substring(0, 1000)}"` }],
                 temperature: 0.5
             })
         });
         if (response.ok) {
             const data = await response.json();
-            return res.json({ result: data.choices[0].message.content });
+            let content = data.choices[0].message.content.trim();
+            if (content.includes('```json')) content = content.split('```json')[1].split('```')[0].trim();
+            else if (content.includes('```')) content = content.split('```')[1].split('```')[0].trim();
+            return res.json({ result: content });
         }
     } catch (e) { console.warn(e); }
     res.json({ result: '{"title": "Kapsamlı Deneme Sınavı"}' });
 });
 
-// Ajan 3: Sınav Üreticisi (Groq 70B) - Hata Korumalı & Syntax Düzeltilmiş
+// Ajan 3: Sınav Üreticisi (Groq 70B) - Backend Temizleme Garantili
 app.post('/api/agent3-generator', async (req, res) => {
     const { prompt } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
     try {
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const response = await fetch('[https://api.groq.com/openai/v1/chat/completions](https://api.groq.com/openai/v1/chat/completions)', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
@@ -101,26 +104,23 @@ app.post('/api/agent3-generator', async (req, res) => {
         });
         if (response.ok) {
             const data = await response.json();
-            return res.json({ result: data.choices[0].message.content });
+            let rawContent = data.choices[0].message.content.trim();
+            
+            // Markdown etiketlerini sunucuda tamamen temizle ki frontend patlamasın!
+            if (rawContent.includes('```json')) {
+                rawContent = rawContent.split('```json')[1].split('```')[0].trim();
+            } else if (rawContent.includes('```')) {
+                rawContent = rawContent.split('```')[1].split('```')[0].trim();
+            }
+
+            return res.json({ result: rawContent });
         } else {
-            const errBody = await response.text(); // 'await.text()' hatası düzeltildi!
+            const errBody = await response.text();
             throw new Error(`Groq API Hatası (${response.status}): ${errBody}`);
         }
     } catch (e) {
         console.error("Ajan 3 Hatası:", e);
-        const fallbackJSON = {
-            "title": "Güvenli Deneme Sınavı",
-            "questions": [
-                {
-                    "id": 1,
-                    "question": "Sistem otomatik yedek moduna geçti. Bu materyalin temel odağı nedir?",
-                    "options": ["Temel Bilgiler ve Kavramlar", "İleri Düzey Uygulamalar", "Özet Tekrar", "Genel Değerlendirme"],
-                    "correctAnswer": 0,
-                    "explanation": "Yoğunluk veya API kısıtlamasında sistemin kesintisiz devam etmesini sağlayan yedek sorudur."
-                }
-            ]
-        };
-        return res.json({ result: JSON.stringify(fallbackJSON), isFallback: true });
+        res.status(500).json({ error: 'Soru üretilemedi: ' + e.message });
     }
 });
 
@@ -130,5 +130,5 @@ app.post('/api/agent4-evaluator', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 QuizCraft AI Pro Backend Port ${PORT} Üzerinde Başarıyla Başlatıldı!`);
+    console.log(`🚀 QuizCraft AI Pro Backend Port ${PORT} Üzerinde Aktif!`);
 });
