@@ -23,7 +23,7 @@ app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
 
-// PDF Okuma
+// PDF Okuma Proxy
 app.post('/api/parse-pdf', upload.array('pdfs'), async (req, res) => {
     try {
         if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'PDF bulunamadı.' });
@@ -60,7 +60,7 @@ app.post('/api/agent1-analyst', async (req, res) => {
             }
         } catch (e) { console.warn(e); }
     }
-    res.json({ result: text.substring(0, 4000) }); // Yedek olarak ham metni ver
+    res.json({ result: text.substring(0, 4000) });
 });
 
 // Ajan 2: Senaryo Mimarı (Groq 8B)
@@ -85,7 +85,7 @@ app.post('/api/agent2-scenario', async (req, res) => {
     res.json({ result: '{"title": "Kapsamlı Deneme Sınavı"}' });
 });
 
-// Ajan 3: Sınav Üreticisi (Groq 70B) - Hata Korumalı
+// Ajan 3: Sınav Üreticisi (Groq 70B) - Hata Korumalı & Syntax Düzeltilmiş
 app.post('/api/agent3-generator', async (req, res) => {
     const { prompt } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
@@ -103,21 +103,20 @@ app.post('/api/agent3-generator', async (req, res) => {
             const data = await response.json();
             return res.json({ result: data.choices[0].message.content });
         } else {
-            const errBody = await.text();
-            throw new Error(`Groq API Durum Kodu: ${response.status} - ${errBody}`);
+            const errBody = await response.text(); // 'await.text()' hatası düzeltildi!
+            throw new Error(`Groq API Hatası (${response.status}): ${errBody}`);
         }
     } catch (e) {
         console.error("Ajan 3 Hatası:", e);
-        // Yedek akıllı JSON üretimi (Sistem çökmesin diye)
         const fallbackJSON = {
-            "title": "Yedek Güvenli Deneme Sınavı",
+            "title": "Güvenli Deneme Sınavı",
             "questions": [
                 {
                     "id": 1,
-                    "question": "Sunucu yoğunluğu nedeniyle otomatik üretilen yedek sorudur. Bu materyalin ana odak noktası nedir?",
-                    "options": ["Temel Kavramlar", "İleri Düzey Analiz", "Genel Tekrar", "Hiçbiri"],
+                    "question": "Sistem otomatik yedek moduna geçti. Bu materyalin temel odağı nedir?",
+                    "options": ["Temel Bilgiler ve Kavramlar", "İleri Düzey Uygulamalar", "Özet Tekrar", "Genel Değerlendirme"],
                     "correctAnswer": 0,
-                    "explanation": "Yoğunluk anında sistemin çalışmaya devam etmesi için oluşturulan yedek sorudur."
+                    "explanation": "Yoğunluk veya API kısıtlamasında sistemin kesintisiz devam etmesini sağlayan yedek sorudur."
                 }
             ]
         };
@@ -125,10 +124,11 @@ app.post('/api/agent3-generator', async (req, res) => {
     }
 });
 
+// Ajan 4: Değerlendirici
 app.post('/api/agent4-evaluator', async (req, res) => {
     res.json({ status: 'success' });
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 QuizCraft AI Pro Backend ${PORT} portunda aktif!`);
+    console.log(`🚀 QuizCraft AI Pro Backend Port ${PORT} Üzerinde Başarıyla Başlatıldı!`);
 });
