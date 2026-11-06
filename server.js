@@ -38,7 +38,7 @@ app.post('/api/parse-pdf', upload.array('pdfs'), async (req, res) => {
     }
 });
 
-// --- AJAN 1: BELGE ANALİSTİ (Google Gemini) ---
+// Ajan 1: Belge Analisti (Gemini)
 app.post('/api/agent1-analyst', async (req, res) => {
     const { text } = req.body;
     const apiKey = process.env.GEMINI_API_KEY;
@@ -63,18 +63,17 @@ app.post('/api/agent1-analyst', async (req, res) => {
     res.status(500).json({ error: 'Ajan 1 (Gemini) yanıt vermedi.' });
 });
 
-// --- AJAN 2: SENARYO MİMARI (Groq 8B) ---
+// Ajan 2: Senaryo Mimarı (Groq 8B)
 app.post('/api/agent2-scenario', async (req, res) => {
     const { summary } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
-
     try {
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
                 model: 'llama-3.1-8b-instant',
-                messages: [{ role: 'user', content: `Bu materyal için en uygun sınav başlığını ve odak noktasını belirle. Yalnızca JSON döndür: {"title": "Sınav Başlığı", "focus": "Odak"}. Materyal: "${summary.substring(0, 1000)}"` }],
+                messages: [{ role: 'user', content: `Bu materyal için sınav başlığı belirle. Yalnızca JSON döndür: {"title": "Başlık"}. Materyal: "${summary.substring(0, 1000)}"` }],
                 temperature: 0.5
             })
         });
@@ -83,14 +82,13 @@ app.post('/api/agent2-scenario', async (req, res) => {
             return res.json({ result: data.choices[0].message.content });
         }
     } catch (e) { console.warn(e); }
-    res.json({ result: '{"title": "Kapsamlı Deneme Sınavı", "focus": "Genel"}' });
+    res.json({ result: '{"title": "Kapsamlı Deneme Sınavı"}' });
 });
 
-// --- AJAN 3: SINAV ÜRETİCİSİ (Groq 70B) ---
+// Ajan 3: Sınav Üreticisi (Groq 70B)
 app.post('/api/agent3-generator', async (req, res) => {
     const { prompt } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
-
     try {
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
@@ -106,14 +104,12 @@ app.post('/api/agent3-generator', async (req, res) => {
             return res.json({ result: data.choices[0].message.content });
         }
     } catch (e) { console.warn(e); }
-    res.status(500).json({ error: 'Ajan 3 (Groq 70B) soru üretirken hata oluşturdu.' });
+    res.status(500).json({ error: 'Ajan 3 soru üretirken hata oluştu.' });
 });
 
-// --- AJAN 4: DEĞERLENDİRİCİ & KALİTE KONTROL (Groq 70B) ---
+// Ajan 4: Değerlendirici
 app.post('/api/agent4-evaluator', async (req, res) => {
-    const { quizData } = req.body;
-    // Kalite kontrol ve doğrulama simülasyonu
-    res.json({ status: 'success', message: 'Tüm sorular Ajan 4 tarafından doğrulandı.' });
+    res.json({ status: 'success' });
 });
 
 app.listen(PORT, () => {
