@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizCraft AI Pro - Multi-Agent Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#f0f6ff', 100: '#e0edff', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 900: '#1e3a8a' },
+                        accent: { purple: '#8b5cf6', pink: '#ec4899', emerald: '#10b981', amber: '#f59e0b', rose: '#f43f5e' }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.5); border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col md:flex-row antialiased selection:bg-brand-500 selection:text-white custom-scrollbar">
+
+    <aside class="w-full md:w-72 bg-slate-900/60 border-r border-slate-800 p-6 flex flex-col justify-between shrink-0">
+        <div class="space-y-6">
+            <div class="flex items-center gap-3 border-b border-slate-800 pb-4">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-accent-purple to-accent-pink flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-brand-500/30">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg text-white">QuizCraft Pro</h1>
+                    <p class="text-[10px] text-emerald-400 font-mono font-semibold">Render & Node.js Ready</p>
+                </div>
+            </div>
+
+            <nav class="space-y-2">
+                <button onclick="switchView('create')" id="btn-view-create" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-white bg-brand-600 shadow-lg shadow-brand-600/25">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Sınav Oluştur</span>
+                </button>
+            </nav>
+        </div>
+
+        <div class="glass p-4 rounded-2xl border border-slate-800 text-xs space-y-2">
+            <div class="flex items-center gap-2 text-emerald-400 font-bold">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Entegre API Anahtarları</span>
+            </div>
+            <p class="text-[10px] text-slate-400">Gemini & Groq API anahtarları sunucu tarafında gömülü çalışır.</p>
+        </div>
+    </aside>
+
+    <main class="flex-1 p-6 md:p-10 max-w-5xl mx-auto space-y-8 overflow-y-auto custom-scrollbar">
+        <section id="sec-create" class="space-y-6">
+            <div class="glass p-6 rounded-3xl border border-slate-800 space-y-6">
+                <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                    <i class="fa-solid fa-file-pdf text-red-400"></i>
+                    <span>Ders Materyali & PDF Yükleme</span>
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-3">
+                        <label class="text-xs font-semibold text-slate-300">PDF Dosyaları Seçin:</label>
+                        <input type="file" id="pdf-input" multiple accept="application/pdf" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-500">
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="text-xs font-semibold text-slate-300">Ek Özel Notlarınız:</label>
+                        <textarea id="notes-input" rows="4" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500" placeholder="Kendi çalışma notlarınızı buraya yazın..."></textarea>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-800 pt-4">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-300">Soru Sayısı</label>
+                        <select id="q-count" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 mt-1">
+                            <option value="5">5 Soru</option>
+                            <option value="10" selected>10 Soru</option>
+                            <option value="15">15 Soru</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-300">Zorluk Seviyesi</label>
+                        <select id="q-diff" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 mt-1">
+                            <option value="Orta" selected>Orta (Okul Standardı)</option>
+                            <option value="Zor">Zor (LGS / YKS Seviyesi)</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="generateExam()" class="w-full py-3 rounded-xl bg-gradient-to-r from-brand-600 to-accent-purple font-bold text-xs text-white shadow-lg hover:opacity-90">
+                            Sınavı Oluştur
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="pipeline-box" class="hidden glass p-6 rounded-3xl border border-brand-500/30 space-y-4">
+                <div class="flex items-center gap-3 text-brand-400 font-bold text-sm">
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+                    <span id="pipeline-status">Backend API Proxy İstekleri Gönderiliyor...</span>
+                </div>
+                <div id="pipeline-logs" class="bg-slate-950 p-4 rounded-xl font-mono text-xs text-slate-400 h-28 overflow-y-auto space-y-1"></div>
+            </div>
+
+            <div id="quiz-box" class="hidden space-y-6">
+                <div class="glass p-6 rounded-3xl flex justify-between items-center border border-slate-800">
+                    <h3 id="quiz-title" class="font-extrabold text-lg text-white">Sınav Başlığı</h3>
+                    <button onclick="submitAnswers()" class="px-6 py-2.5 rounded-xl bg-emerald-600 font-bold text-xs text-white hover:bg-emerald-500">Sınavı Bitir ve Değerlendir</button>
+                </div>
+                <div id="quiz-questions" class="space-y-4"></div>
+            </div>
+
+            <div id="results-box" class="hidden glass p-8 rounded-3xl border border-emerald-500/40 space-y-6">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                    <div>
+                        <h3 class="font-extrabold text-xl text-white">Sınav Karnesi</h3>
+                        <p class="text-xs text-slate-400">Node.js AI Değerlendirme Sonucu</p>
+                    </div>
+                    <div class="text-center bg-slate-900 px-6 py-3 rounded-2xl border border-slate-800">
+                        <div class="text-[10px] text-slate-400">Tahmini Yazılı Notu</div>
+                        <div id="final-grade" class="text-3xl font-black text-amber-400">0</div>
+                    </div>
+                </div>
+                <div id="feedback-list" class="space-y-4"></div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let currentQuizData = null;
+        let userAnswers = {};
+
+        function log(msg) {
+            const el = document.getElementById('pipeline-logs');
+            el.innerHTML += `<div>> ${msg}</div>`;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        async function generateExam() {
+            const pdfFiles = document.getElementById('pdf-input').files;
+            const extraNotes = document.getElementById('notes-input').value.trim();
+            const qCount = document.getElementById('q-count').value;
+
+            document.getElementById('pipeline-box').classList.remove('hidden');
+            document.getElementById('quiz-box').classList.add('hidden');
+            document.getElementById('results-box').classList.add('hidden');
+            document.getElementById('pipeline-logs').innerHTML = '';
+
+            let combinedText = extraNotes;
+
+            if (pdfFiles.length > 0) {
+                log("PDF dosyaları Backend sunucusuna gönderiliyor...");
+                const formData = new FormData();
+                for (let f of pdfFiles) formData.append('pdfs', f);
+
+                try {
+                    const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (data.text) {
+                        combinedText += '\n\n' + data.text;
+                        log("PDF içerikleri başarıyla metne çevrildi.");
+                    }
+                } catch (e) {
+                    log("PDF ayrıştırma hatası: " + e.message);
+                }
+            }
+
+            if (!combinedText.trim()) {
+                alert("Lütfen en az bir PDF yükleyin ya da çalışma notu girin!");
+                document.getElementById('pipeline-box').classList.add('hidden');
+                return;
+            }
+
+            log("Ajan 1 (Gemini Backend Proxy) çağrılıyor...");
+            let summary = '';
+            try {
+                const res = await fetch('/api/agent1-summary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: combinedText })
+                });
+                const data = await res.json();
+                summary = data.summary || combinedText;
+                log("Gemini özeti başarıyla alındı.");
+            } catch (e) {
+                log("Gemini API uyarısı, doğrudan metne geçiliyor...");
+                summary = combinedText;
+            }
+
+            log(`Ajan 3 (Groq Backend Proxy) ile ${qCount} soru üretiliyor...`);
+            const prompt = `Ders materyalini analiz et ve ${qCount} adet çoktan seçmeli Türkçe soru üret.
+Materyal: "${summary.substring(0, 2500)}"
+Yalnızca şu JSON formatını döndür:
+{
+  "title": "Sınav Başlığı",
+  "questions": [
+    {
+      "id": 1,
+      "question": "Soru metni?",
+      "options": ["Şık A", "Şık B", "Şık C", "Şık D"],
+      "correctAnswer": 0,
+      "explanation": "Detaylı çözüm açıklaması"
+    }
+  ]
+}`;
+
+            try {
+                const res = await fetch('/api/agent-groq', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                const data = await res.json();
+                if (data.result) {
+                    const cleaned = data.result.replace(/```json/g, '').replace(/```/g, '').trim();
+                    currentQuizData = JSON.parse(cleaned);
+                    log(`Soru üretimi tamamlandı! (Kullanılan Model: ${data.modelUsed})`);
+                    renderQuiz(currentQuizData);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (e) {
+                log("Groq API Hatası: " + e.message);
+                alert("API Hatası: " + e.message);
+            }
+        }
+
+        function renderQuiz(quiz) {
+            document.getElementById('pipeline-box').classList.add('hidden');
+            document.getElementById('quiz-box').classList.remove('hidden');
+            document.getElementById('quiz-title').innerText = quiz.title || "Özel Deneme Sınavı";
+
+            const container = document.getElementById('quiz-questions');
+            container.innerHTML = '';
+            userAnswers = {};
+
+            quiz.questions.forEach((q, idx) => {
+                const div = document.createElement('div');
+                div.className = 'glass p-6 rounded-2xl border border-slate-800 space-y-3';
+                
+                let optsHTML = q.options.map((opt, oIdx) => `
+                    <button onclick="selectOpt(${q.id}, ${oIdx})" id="q-${q.id}-opt-${oIdx}" class="w-full text-left p-3 rounded-xl border border-slate-800 bg-slate-900 text-xs text-slate-300 hover:border-brand-500 transition-all">
+                        ${['A', 'B', 'C', 'D'][oIdx]}) ${opt}
+                    </button>
+                `).join('');
+
+                div.innerHTML = `
+                    <div class="text-xs font-bold text-brand-400">Soru ${idx + 1}</div>
+                    <div class="font-semibold text-sm text-white">${q.question}</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">${optsHTML}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function selectOpt(qId, oIdx) {
+            userAnswers[qId] = oIdx;
+            document.querySelectorAll(`[id^="q-${qId}-opt-"]`).forEach((b, idx) => {
+                b.className = idx === oIdx 
+                    ? 'w-full text-left p-3 rounded-xl border border-brand-500 bg-brand-500/20 text-xs text-white font-bold'
+                    : 'w-full text-left p-3 rounded-xl border border-slate-800 bg-slate-900 text-xs text-slate-300 opacity-60';
+            });
+        }
+
+        function submitAnswers() {
+            if (!currentQuizData) return;
+            let correct = 0;
+            const container = document.getElementById('feedback-list');
+            container.innerHTML = '';
+
+            currentQuizData.questions.forEach((q, idx) => {
+                const uAns = userAnswers[q.id];
+                const isCorrect = uAns === q.correctAnswer;
+                if (isCorrect) correct++;
+
+                const div = document.createElement('div');
+                div.className = `glass p-4 rounded-xl border ${isCorrect ? 'border-emerald-500/40' : 'border-rose-500/40'} space-y-1 text-xs`;
+                div.innerHTML = `
+                    <div class="font-bold ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}">Soru ${idx + 1}: ${isCorrect ? '✓ Doğru' : '✗ Yanlış'}</div>
+                    <div class="text-white font-medium">${q.question}</div>
+                    <div class="text-slate-400">Doğru Cevap: <span class="text-emerald-400">${q.options[q.correctAnswer]}</span></div>
+                    <div class="text-slate-400">Açıklama: ${q.explanation}</div>
+                `;
+                container.appendChild(div);
+            });
+
+            const grade = Math.round((correct / currentQuizData.questions.length) * 100);
+            document.getElementById('final-grade').innerText = grade;
+
+            document.getElementById('quiz-box').classList.add('hidden');
+            document.getElementById('results-box').classList.remove('hidden');
+
+            if (grade >= 70 && window.confetti) confetti();
+        }
+    </script>
+</body>
+</html>
