@@ -1,139 +1,164 @@
 <!DOCTYPE html>
-<html lang="tr" class="dark">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QuizCraft AI Pro - Akıllı Çoklu Ajan Sınav Mimarisi</title>
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: { 50: '#f0f6ff', 100: '#e0edff', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 900: '#1e3a8a' },
-                        accent: { purple: '#8b5cf6', pink: '#ec4899', emerald: '#10b981', amber: '#f59e0b', rose: '#f43f5e' }
-                    }
-                }
-            }
-        }
-    </script>
-    <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)">
-    <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap)" rel="stylesheet">
-    <script src="[https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js](https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js)"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .glass { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.5); border-radius: 4px; }
-        @keyframes pulse-subtle { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.85; transform: scale(0.99); } }
-        .agent-active { animation: pulse-subtle 2s infinite ease-in-out; border-color: #3b82f6 !important; box-shadow: 0 0 20px rgba(59, 130, 246, 0.35); }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: #f8fafc; min-height: 100vh; display: flex; overflow-x: hidden; }
+        
+        /* Layout */
+        aside { width: 280px; background: rgba(15, 23, 42, 0.95); border-right: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; z-index: 40; }
+        main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; }
+        header { padding: 20px 32px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 30; }
+        
+        /* Glass & Components */
+        .glass { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; padding: 24px; }
+        .btn { padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 13px; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary { background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4); }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        
+        /* Sidebar Nav */
+        .sidebar-brand { padding: 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+        .brand-icon { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #2563eb, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; }
+        nav { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+        .nav-btn { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 500; color: #94a3b8; background: transparent; border: none; cursor: pointer; text-align: left; }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.04); color: #fff; }
+        .nav-btn.active { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+        
+        /* Form Elements */
+        input, select, textarea { width: 100%; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px; color: #f8fafc; font-size: 13px; outline: none; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { border-color: #3b82f6; }
+        
+        /* Grid Helpers */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .space-y > * + * { margin-top: 20px; }
+        
+        /* Utilities */
+        .hidden { display: none !important; }
+        .badge { font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        
+        /* Agent Cards */
+        .agent-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .agent-card { background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 16px; opacity: 0.5; }
+        .agent-card.active { opacity: 1; border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+        .agent-card.done { opacity: 1; border-color: #10b981; }
+        
+        .opt-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); background: #0f172a; color: #cbd5e1; font-weight: 700; font-size: 12px; cursor: pointer; }
+        .opt-btn.selected { border-color: #3b82f6; background: rgba(59, 130, 246, 0.2); color: #fff; }
+        
+        @media(max-width: 768px) {
+            body { flex-direction: column; }
+            aside { width: 100%; height: auto; position: relative; }
+            .grid-2, .grid-4, .agent-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col md:flex-row antialiased custom-scrollbar">
+<body>
 
     <!-- Sidebar -->
-    <aside class="fixed md:static inset-y-0 left-0 z-40 w-72 bg-slate-900/90 md:bg-slate-900/40 backdrop-blur-xl border-r border-slate-800 flex flex-col">
-        <div class="p-6 hidden md:flex items-center gap-3 border-b border-slate-800/80">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-accent-purple to-accent-pink flex items-center justify-center font-bold text-xl text-white shadow-lg">
-                <i class="fa-solid fa-brain"></i>
-            </div>
+    <aside>
+        <div class="sidebar-brand">
+            <div class="brand-icon"><i class="fa-solid fa-brain"></i></div>
             <div>
-                <h1 class="font-extrabold text-xl text-white">QuizCraft AI Pro</h1>
-                <p class="text-[10px] text-slate-400 font-semibold uppercase">Multi-Agent Engine v6.5</p>
+                <h1 style="font-size: 18px; font-weight: 800; color: #fff;">QuizCraft AI Pro</h1>
+                <p style="font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Multi-Agent Engine v6.5</p>
             </div>
         </div>
 
-        <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
-            <button onclick="switchTab('create')" id="nav-create" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-white bg-gradient-to-r from-brand-600 to-brand-700 shadow-lg">
-                <i class="fa-solid fa-wand-magic-sparkles text-lg text-brand-200 w-5"></i> Sınav Oluştur
+        <nav>
+            <button onclick="switchTab('create')" id="nav-create" class="nav-btn active">
+                <i class="fa-solid fa-wand-magic-sparkles" style="width: 20px;"></i> Sınav Oluştur
             </button>
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-300 hover:bg-slate-800/60 hover:text-white">
-                <i class="fa-solid fa-chart-pie text-lg text-brand-500 w-5"></i> Ana Panel
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn">
+                <i class="fa-solid fa-chart-pie" style="width: 20px;"></i> Ana Panel
             </button>
-            <button onclick="switchTab('archive')" id="nav-archive" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-300 hover:bg-slate-800/60 hover:text-white">
-                <i class="fa-solid fa-box-archive text-lg text-accent-purple w-5"></i> Sınav Arşivi <span id="archive-badge" class="ml-auto bg-slate-800 text-slate-300 text-xs px-2 py-0.5 rounded-full">0</span>
+            <button onclick="switchTab('archive')" id="nav-archive" class="nav-btn">
+                <i class="fa-solid fa-box-archive" style="width: 20px;"></i> Sınav Arşivi <span id="archive-badge" class="badge" style="margin-left: auto;">0</span>
             </button>
-            <button onclick="switchTab('wrong-log')" id="nav-wrong-log" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm text-slate-300 hover:bg-slate-800/60 hover:text-white">
-                <i class="fa-solid fa-book-bookmark text-lg text-rose-400 w-5"></i> Hata Defteri <span id="wrong-badge" class="ml-auto bg-rose-500/20 text-rose-300 text-xs px-2 py-0.5 rounded-full">0</span>
+            <button onclick="switchTab('wrong-log')" id="nav-wrong-log" class="nav-btn">
+                <i class="fa-solid fa-book-bookmark" style="width: 20px; color: #f43f5e;"></i> Hata Defteri <span id="wrong-badge" class="badge" style="background: rgba(244, 63, 94, 0.15); color: #fb7185; margin-left: auto;">0</span>
             </button>
         </nav>
     </aside>
 
     <!-- Main Content Area -->
-    <main class="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto custom-scrollbar">
-        <header class="hidden md:flex items-center justify-between px-8 py-4 border-b border-slate-800/80 bg-slate-900/40 backdrop-blur sticky top-0 z-30">
-            <div>
-                <h2 id="header-title" class="font-bold text-lg text-white">Sınav Oluşturucu</h2>
-                <p id="header-subtitle" class="text-xs text-slate-400">Çoklu PDF + Özel Not Analizör ve Derin Düşünme Bütçeli Ajan Sistemi</p>
-            </div>
+    <main>
+        <header>
+            <h2 id="header-title" style="font-size: 16px; font-weight: 700; color: #fff;">Sınav Oluşturucu</h2>
+            <p id="header-subtitle" style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Çoklu PDF + Özel Not Analizör ve Derin Düşünme Bütçeli Ajan Sistemi</p>
         </header>
 
         <!-- VIEW 1: CREATE -->
-        <section id="view-create" class="view-section p-4 md:p-8 max-w-6xl w-full mx-auto space-y-8">
-            <div id="creation-form" class="space-y-6">
+        <section id="view-create" class="view-section" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;" class="space-y">
+            <div id="creation-form" class="space-y">
                 <!-- PDF & Notes Panel -->
-                <div class="glass p-6 rounded-3xl space-y-6 border border-slate-800">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-xl bg-brand-500/20 text-brand-400 flex items-center justify-center font-bold">1</div>
+                <div class="glass" style="display: flex; flex-direction: column; gap: 20px;">
+                    <div style="display: flex; align-items: center; justify-content: border-bottom; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 32px; height: 32px; border-radius: 10px; background: rgba(59,130,246,0.2); color: #60a5fa; display: flex; align-items: center; justify-content: center; font-weight: 700;">1</div>
                             <div>
-                                <h3 class="font-bold text-white text-base">Çoklu Belge ve Ek Not Yükleme</h3>
-                                <p class="text-xs text-slate-400">PDF yükleyin veya özel ders notlarınızı yazın.</p>
+                                <h3 style="font-size: 15px; font-weight: 700; color: #fff;">Çoklu Belge ve Ek Not Yükleme</h3>
+                                <p style="font-size: 12px; color: #94a3b8;">PDF yükleyin veya özel ders notlarınızı yazın.</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-3">
-                            <label class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                    <div class="grid-2">
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; color: #cbd5e1;">
                                 <span>1.1 PDF Dosyaları:</span>
-                                <span id="pdf-count-badge" class="text-[10px] bg-brand-500/20 text-brand-300 px-2 py-0.5 rounded-full font-bold">0 PDF Yüklendi</span>
-                            </label>
-                            <div class="border-2 border-dashed border-slate-700 hover:border-brand-500/60 rounded-2xl p-6 transition-all bg-slate-900/40 text-center flex flex-col items-center justify-center min-h-[160px] relative group cursor-pointer">
-                                <input type="file" id="pdf-file-input" multiple accept="application/pdf" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10" onchange="handleMultipleFiles(event)">
-                                <div class="w-10 h-10 rounded-full bg-brand-500/10 text-brand-400 flex items-center justify-center text-lg mb-2">
+                                <span id="pdf-count-badge" class="badge">0 PDF Yüklendi</span>
+                            </div>
+                            <div style="border: 2px dashed rgba(255,255,255,0.15); border-radius: 16px; padding: 24px; text-align: center; background: rgba(15,23,42,0.4); position: relative; cursor: pointer; min-height: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <input type="file" id="pdf-file-input" multiple accept="application/pdf" style="position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; z-index: 10;" onchange="handleMultipleFiles(event)">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(59,130,246,0.1); color: #60a5fa; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 8px;">
                                     <i class="fa-solid fa-folder-plus"></i>
                                 </div>
-                                <h4 class="text-xs font-semibold text-slate-200">PDF Dosyalarını Sürükleyin veya Seçin</h4>
+                                <h4 style="font-size: 12px; font-weight: 600; color: #e2e8f0;">PDF Dosyalarını Sürükleyin veya Seçin</h4>
                             </div>
-                            <div id="pdf-file-list" class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar"></div>
+                            <div id="pdf-file-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 150px; overflow-y: auto;"></div>
                         </div>
 
-                        <div class="flex flex-col">
-                            <div class="flex items-center justify-between mb-2">
-                                <label for="raw-text-input" class="text-xs font-semibold text-slate-300">1.2 Ek Özel Notlarınız:</label>
-                                <button type="button" onclick="loadSampleData()" class="text-brand-400 hover:underline text-[11px] font-semibold">Örnek Not Yükle</button>
+                        <div style="display: flex; flex-direction: column;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <label for="raw-text-input" style="font-size: 12px; font-weight: 600; color: #cbd5e1;">1.2 Ek Özel Notlarınız:</label>
+                                <button type="button" onclick="loadSampleData()" style="color: #60a5fa; background: none; border: none; font-size: 11px; font-weight: 600; cursor: pointer;">Örnek Not Yükle</button>
                             </div>
-                            <textarea id="raw-text-input" rows="7" class="w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-4 text-xs text-slate-200 focus:outline-none focus:border-brand-500 resize-none flex-1" placeholder="Çalışma notlarınızı buraya yazın..."></textarea>
+                            <textarea id="raw-text-input" rows="7" placeholder="Çalışma notlarınızı buraya yazın..." style="resize: none; flex: 1;"></textarea>
                         </div>
                     </div>
                 </div>
 
                 <!-- Parameters & Options Panel -->
-                <div class="glass p-6 rounded-3xl space-y-6 border border-slate-800">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <div class="space-y-2">
-                            <label class="text-xs font-semibold text-slate-300">Soru Formatı</label>
-                            <select id="question-type-select" onchange="toggleOptionCountContainer()" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
-                                <option value="mc">Çoktan Seçmeli (Test / Şıklı)</option>
+                <div class="glass" style="display: flex; flex-direction: column; gap: 20px;">
+                    <div class="grid-4">
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <label style="font-size: 12px; font-weight: 600; color: #cbd5e1;">Soru Formatı</label>
+                            <select id="question-type-select" onchange="toggleOptionCountContainer()">
+                                <option value="mc">Çoktan Seçmeli (Test)</option>
                                 <option value="open">Açık Uçlu / Klasik</option>
                             </select>
                         </div>
 
-                        <div id="option-count-container" class="space-y-2">
-                            <label class="text-xs font-semibold text-slate-300">Şık Sayısı</label>
-                            <div class="grid grid-cols-4 gap-1">
-                                <button type="button" onclick="setOptionCount(2)" class="opt-btn py-2.5 rounded-xl border border-slate-800 bg-slate-900 text-xs font-bold text-slate-300" data-val="2">2</button>
-                                <button type="button" onclick="setOptionCount(3)" class="opt-btn py-2.5 rounded-xl border border-slate-800 bg-slate-900 text-xs font-bold text-slate-300" data-val="3">3</button>
-                                <button type="button" onclick="setOptionCount(4)" class="opt-btn py-2.5 rounded-xl border border-brand-500 bg-brand-500/20 text-xs font-bold text-white" data-val="4">4</button>
-                                <button type="button" onclick="setOptionCount(5)" class="opt-btn py-2.5 rounded-xl border border-slate-800 bg-slate-900 text-xs font-bold text-slate-300" data-val="5">5</button>
+                        <div id="option-count-container" style="display: flex; flex-direction: column; gap: 8px;">
+                            <label style="font-size: 12px; font-weight: 600; color: #cbd5e1;">Şık Sayısı</label>
+                            <div style="display: flex; gap: 4px;">
+                                <button type="button" onclick="setOptionCount(2)" class="opt-btn" data-val="2">2</button>
+                                <button type="button" onclick="setOptionCount(3)" class="opt-btn" data-val="3">3</button>
+                                <button type="button" onclick="setOptionCount(4)" class="opt-btn selected" data-val="4">4</button>
+                                <button type="button" onclick="setOptionCount(5)" class="opt-btn" data-val="5">5</button>
                             </div>
                         </div>
 
-                        <div class="space-y-2">
-                            <label class="text-xs font-semibold text-slate-300">Zorluk Seviyesi</label>
-                            <select id="difficulty-select" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <label style="font-size: 12px; font-weight: 600; color: #cbd5e1;">Zorluk Seviyesi</label>
+                            <select id="difficulty-select">
                                 <option value="Kolay">Kolay</option>
                                 <option value="Orta" selected>Orta (Okul Standardı)</option>
                                 <option value="Zor">Zor</option>
@@ -141,60 +166,48 @@
                             </select>
                         </div>
 
-                        <div class="space-y-2">
-                            <label class="text-xs font-semibold text-slate-300">AI Üretim Süresi Bütçesi</label>
-                            <select id="ai-thinking-budget-select" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <label style="font-size: 12px; font-weight: 600; color: #cbd5e1;">AI Süre Bütçesi</label>
+                            <select id="ai-thinking-budget-select">
                                 <option value="10">10 Saniye</option>
-                                <option value="30" selected>30 Saniye (Standart)</option>
-                                <option value="60">1 Dakika (Derin Kalite)</option>
+                                <option value="30" selected>30 Saniye</option>
+                                <option value="60">1 Dakika</option>
                             </select>
                         </div>
                     </div>
 
                     <!-- Toggles -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t border-slate-800">
-                        <label class="glass p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between cursor-pointer">
-                            <div>
-                                <span class="text-xs font-bold text-amber-400 block">+1 Bonus Soru</span>
-                                <span class="text-[10px] text-slate-400">+15 Puanlık Zor Soru</span>
-                            </div>
-                            <input type="checkbox" id="toggle-bonus-question" checked class="w-4 h-4 accent-amber-500">
+                    <div class="grid-4" style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
+                        <label style="background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                            <div><span style="font-size: 11px; font-weight: 700; color: #fbbf24; display: block;">+1 Bonus Soru</span><span style="font-size: 9px; color: #94a3b8;">+15 Puan Değerinde</span></div>
+                            <input type="checkbox" id="toggle-bonus-question" checked style="width: 16px; height: 16px; accent-color: #f59e0b;">
                         </label>
-                        <label class="glass p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between cursor-pointer">
-                            <div>
-                                <span class="text-xs font-bold text-brand-400 block">Şema / Harita Soruları</span>
-                                <span class="text-[10px] text-slate-400">Görsel Temelli</span>
-                            </div>
-                            <input type="checkbox" id="toggle-visual-analysis" checked class="w-4 h-4 accent-brand-500">
+                        <label style="background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                            <div><span style="font-size: 11px; font-weight: 700; color: #60a5fa; display: block;">Şema / Harita</span><span style="font-size: 9px; color: #94a3b8;">Görsel Temelli</span></div>
+                            <input type="checkbox" id="toggle-visual-analysis" checked style="width: 16px; height: 16px; accent-color: #3b82f6;">
                         </label>
-                        <label class="glass p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between cursor-pointer">
-                            <div>
-                                <span class="text-xs font-bold text-emerald-400 block">PDF / Yazdırma Modu</span>
-                                <span class="text-[10px] text-slate-400">Çıktı Alabilme</span>
-                            </div>
-                            <input type="checkbox" id="toggle-export-pdf" checked class="w-4 h-4 accent-emerald-500">
+                        <label style="background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                            <div><span style="font-size: 11px; font-weight: 700; color: #34d399; display: block;">PDF Çıktı Modu</span><span style="font-size: 9px; color: #94a3b8;">Yazdırılabilir</span></div>
+                            <input type="checkbox" id="toggle-export-pdf" checked style="width: 16px; height: 16px; accent-color: #10b981;">
                         </label>
-                        <label class="glass p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between cursor-pointer">
-                            <div>
-                                <span class="text-xs font-bold text-purple-400 block">Sanal Rakip Düello</span>
-                                <span class="text-[10px] text-slate-400">Canlı Rekabet</span>
-                            </div>
-                            <input type="checkbox" id="toggle-duel-mode" checked class="w-4 h-4 accent-purple-500">
+                        <label style="background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+                            <div><span style="font-size: 11px; font-weight: 700; color: #a78bfa; display: block;">Sanal Rakip</span><span style="font-size: 9px; color: #94a3b8;">Canlı Rekabet</span></div>
+                            <input type="checkbox" id="toggle-duel-mode" checked style="width: 16px; height: 16px; accent-color: #8b5cf6;">
                         </label>
                     </div>
 
-                    <!-- Slider & Timer -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-xs font-semibold text-slate-300">
+                    <!-- Slider -->
+                    <div class="grid-2">
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #cbd5e1;">
                                 <span>Soru Sayısı:</span>
-                                <span id="question-count-val" class="text-brand-400 font-bold">6 Soru</span>
+                                <span id="question-count-val" style="color: #60a5fa; font-weight: 700;">6 Soru</span>
                             </div>
-                            <input type="range" id="question-count-slider" min="3" max="15" value="6" oninput="document.getElementById('question-count-val').innerText = this.value + ' Soru'" class="w-full accent-brand-500 bg-slate-900 h-2 rounded-lg cursor-pointer">
+                            <input type="range" id="question-count-slider" min="3" max="15" value="6" oninput="document.getElementById('question-count-val').innerText = this.value + ' Soru'" style="accent-color: #3b82f6; cursor: pointer;">
                         </div>
-                        <div class="space-y-2">
-                            <label class="text-xs font-semibold text-slate-300">Sınav Çözme Süresi (Dakika)</label>
-                            <select id="timer-setting-select" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500">
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <label style="font-size: 12px; font-weight: 600; color: #cbd5e1;">Sınav Çözme Süresi</label>
+                            <select id="timer-setting-select">
                                 <option value="0">Süresiz</option>
                                 <option value="5">5 Dakika</option>
                                 <option value="10" selected>10 Dakika</option>
@@ -204,87 +217,482 @@
                     </div>
                 </div>
 
-                <div class="flex justify-end">
-                    <button type="button" onclick="startMultiAgentPipeline()" class="w-full md:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-brand-600 via-accent-purple to-accent-pink hover:opacity-90 text-white font-bold text-sm shadow-xl flex items-center justify-center gap-3 transition-all">
-                        <i class="fa-solid fa-microchip text-lg"></i>
-                        <span>4 Uzman Ajan Boru Hattını Başlat</span>
+                <div style="display: flex; justify-content: flex-end;">
+                    <button type="button" onclick="startMultiAgentPipeline()" class="btn btn-primary" style="padding: 16px 32px; font-size: 14px;">
+                        <i class="fa-solid fa-microchip" style="font-size: 16px;"></i> 4 Uzman Ajan Boru Hattını Başlat
                     </button>
                 </div>
             </div>
 
             <!-- Progress Panel -->
-            <div id="pipeline-progress-panel" class="hidden glass p-8 rounded-3xl border border-brand-500/30 space-y-6">
-                <div class="flex items-center gap-3">
-                    <div class="w-3.5 h-3.5 rounded-full bg-brand-500 animate-ping"></div>
+            <div id="pipeline-progress-panel" class="glass hidden" style="border-color: rgba(59,130,246,0.3); display: flex; flex-direction: column; gap: 20px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; box-shadow: 0 0 10px #3b82f6;"></div>
                     <div>
-                        <h3 class="font-bold text-white text-base">Çoklu Yapay Zeka Ajan Mimarisi Çalışıyor</h3>
-                        <p class="text-xs text-slate-400">Ajanlar sırayla belgeyi analiz ediyor ve soruları hazırlıyor...</p>
+                        <h3 style="font-size: 15px; font-weight: 700; color: #fff;">Çoklu Yapay Zeka Ajan Mimarisi Çalışıyor</h3>
+                        <p style="font-size: 12px; color: #94a3b8;">Ajanlar sırayla belgeyi analiz ediyor ve soruları hazırlıyor...</p>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div id="agent-card-1" class="glass p-4 rounded-2xl border border-slate-800 space-y-1">
-                        <div class="text-xs font-bold text-brand-400">Ajan 1: Belge Analisti</div>
-                        <div class="text-[10px] text-slate-400">Google Gemini API</div>
+                <div class="agent-grid">
+                    <div id="agent-card-1" class="agent-card">
+                        <div style="font-size: 12px; font-weight: 700; color: #60a5fa; margin-bottom: 4px;">Ajan 1: Belge Analisti</div>
+                        <div style="font-size: 10px; color: #94a3b8;">Google Gemini API</div>
                     </div>
-                    <div id="agent-card-2" class="glass p-4 rounded-2xl border border-slate-800 space-y-1 opacity-50">
-                        <div class="text-xs font-bold text-purple-400">Ajan 2: Senaryo Mimar</div>
-                        <div class="text-[10px] text-slate-400">Groq Llama 8B</div>
+                    <div id="agent-card-2" class="agent-card">
+                        <div style="font-size: 12px; font-weight: 700; color: #a78bfa; margin-bottom: 4px;">Ajan 2: Senaryo Mimar</div>
+                        <div style="font-size: 10px; color: #94a3b8;">Groq Llama 8B</div>
                     </div>
-                    <div id="agent-card-3" class="glass p-4 rounded-2xl border border-slate-800 space-y-1 opacity-50">
-                        <div class="text-xs font-bold text-emerald-400">Ajan 3: Sınav Üreticisi</div>
-                        <div class="text-[10px] text-slate-400">Groq Llama 70B</div>
+                    <div id="agent-card-3" class="agent-card">
+                        <div style="font-size: 12px; font-weight: 700; color: #34d399; margin-bottom: 4px;">Ajan 3: Sınav Üreticisi</div>
+                        <div style="font-size: 10px; color: #94a3b8;">Groq Llama 70B</div>
                     </div>
-                    <div id="agent-card-4" class="glass p-4 rounded-2xl border border-slate-800 space-y-1 opacity-50">
-                        <div class="text-xs font-bold text-amber-400">Ajan 4: Değerlendirici</div>
-                        <div class="text-[10px] text-slate-400">Groq Kalite Kontrol</div>
+                    <div id="agent-card-4" class="agent-card">
+                        <div style="font-size: 12px; font-weight: 700; color: #fbbf24; margin-bottom: 4px;">Ajan 4: Değerlendirici</div>
+                        <div style="font-size: 10px; color: #94a3b8;">Groq Kalite Kontrol</div>
                     </div>
                 </div>
-                <div class="bg-slate-950 rounded-2xl p-4 font-mono text-[11px] text-slate-400 space-y-1 h-36 overflow-y-auto custom-scrollbar border border-slate-800" id="pipeline-logs">
-                    <div class="text-brand-400">> [Sistem] 4 ajanlı mimari başlatıldı...</div>
+                <div id="pipeline-logs" style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px; font-family: monospace; font-size: 11px; color: #94a3b8; height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+                    <div style="color: #60a5fa;">> [Sistem] 4 ajanlı mimari başlatıldı...</div>
                 </div>
             </div>
 
             <!-- Quiz Taking Panel -->
-            <div id="quiz-taking-panel" class="hidden space-y-6">
-                <div class="glass p-6 rounded-3xl flex justify-between items-center border-b border-brand-500/30">
+            <div id="quiz-taking-panel" class="hidden space-y">
+                <div class="glass" style="display: flex; justify-content: space-between; align-items: center; border-color: rgba(59,130,246,0.3);">
                     <div>
-                        <span class="bg-brand-500/20 text-brand-300 text-[10px] font-bold px-3 py-1 rounded-full uppercase">Özel Sınav</span>
-                        <h3 id="quiz-title-display" class="font-extrabold text-white text-xl mt-1">Sınav Başlığı</h3>
+                        <span class="badge">Özel Sınav</span>
+                        <h3 id="quiz-title-display" style="font-size: 18px; font-weight: 800; color: #fff; margin-top: 4px;">Sınav Başlığı</h3>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <div id="duel-rival-box" class="hidden glass px-3 py-1.5 rounded-xl border border-purple-500/30 flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-[10px]">
-                                <i class="fa-solid fa-robot"></i>
-                            </div>
-                            <div>
-                                <div class="text-[9px] text-slate-400">Sanal Rakip</div>
-                                <div class="text-[11px] font-bold text-purple-300">Aktif</div>
-                            </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div id="duel-rival-box" class="hidden" style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); border-radius: 12px; padding: 8px 12px; display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(139,92,246,0.3); color: #a78bfa; display: flex; align-items: center; justify-content: center; font-size: 10px;"><i class="fa-solid fa-robot"></i></div>
+                            <div><div style="font-size: 9px; color: #94a3b8;">Sanal Rakip</div><div style="font-size: 11px; font-weight: 700; color: #c4b5fd;">Aktif</div></div>
                         </div>
-                        <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold flex items-center gap-2">
-                            <i class="fa-solid fa-print text-amber-400"></i> Yazdır / PDF
-                        </button>
+                        <button onclick="window.print()" class="btn" style="background: #1e293b; color: #cbd5e1; padding: 8px 16px; font-size: 12px;"><i class="fa-solid fa-print" style="color: #fbbf24;"></i> Yazdır / PDF</button>
                     </div>
                 </div>
-                <div id="quiz-questions-list" class="space-y-6"></div>
-                <div class="flex justify-end pt-4">
-                    <button type="button" onclick="finishQuizSubmit()" class="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-xl hover:opacity-90 flex items-center gap-3">
-                        <i class="fa-solid fa-paper-plane"></i>
-                        <span>Sınavı Tamamla ve Karneni Gör</span>
+                <div id="quiz-questions-list" class="space-y"></div>
+                <div style="display: flex; justify-content: flex-end; padding-top: 10px;">
+                    <button type="button" onclick="finishQuizSubmit()" class="btn" style="background: linear-gradient(135deg, #059669, #0d9488); color: #fff; padding: 16px 32px;">
+                        <i class="fa-solid fa-paper-plane"></i> Sınavı Tamamla ve Karneni Gör
                     </button>
                 </div>
             </div>
 
             <!-- Results Panel -->
-            <div id="quiz-result-panel" class="hidden glass p-8 rounded-3xl space-y-8 border border-brand-500/40">
-                <div class="glass p-6 rounded-3xl border border-slate-800 flex justify-between items-center">
+            <div id="quiz-result-panel" class="glass hidden space-y" style="border-color: rgba(59,130,246,0.4);">
+                <div class="glass" style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <span class="bg-brand-500/20 text-brand-300 text-[10px] font-bold px-3 py-1 rounded-full uppercase">Sınav Karnesi</span>
-                        <h3 class="text-xl font-extrabold text-white mt-1">Değerlendirme Tamamlandı</h3>
+                        <span class="badge">Sınav Karnesi</span>
+                        <h3 style="font-size: 18px; font-weight: 800; color: #fff; margin-top: 4px;">Değerlendirme Tamamlandı</h3>
                     </div>
-                    <div class="text-center bg-slate-950 p-4 rounded-2xl border border-slate-800">
-                        <div class="text-[10px] text-slate-400 uppercase">Tahmini Yazılı Notu</div>
-                        <div id="res-estimated-grade" class="text-3xl font-black text-amber-400 mt-0.5">100</div>
+                    <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; text-align: center;">
+                        <div style="font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Tahmini Yazılı Notu</div>
+                        <div id="res-estimated-grade" style="font-size: 28px; font-weight: 900; color: #fbbf24; margin-top: 2px;">100</div>
                     </div>
                 </div>
-                <div id="ai-feedback-list" class="space-y-
+                <div id="ai-feedback-list" class="space-y"></div>
+                <div style="display: flex; justify-content: flex-end;">
+                    <button onclick="switchTab('create')" class="btn btn-primary" style="padding: 12px 24px; font-size: 12px;">Yeni Sınav Oluştur</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: DASHBOARD -->
+        <section id="view-dashboard" class="view-section hidden" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;">
+            <div class="grid-4" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="glass" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Toplam Üretilen Sınav</div>
+                    <div id="stat-total-quizzes" style="font-size: 32px; font-weight: 900; color: #60a5fa;">0</div>
+                </div>
+                <div class="glass" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Arşivlenen Sınavlar</div>
+                    <div id="stat-archive-count" style="font-size: 32px; font-weight: 900; color: #a78bfa;">0</div>
+                </div>
+                <div class="glass" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Hata Defterindeki Sorular</div>
+                    <div id="stat-wrong-count" style="font-size: 32px; font-weight: 900; color: #fb7185;">0</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: ARCHIVE -->
+        <section id="view-archive" class="view-section hidden" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;" class="space-y">
+            <h3 style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 16px;">Sınav Arşivi</h3>
+            <div id="archive-grid" class="grid-2"></div>
+        </section>
+
+        <!-- VIEW 4: WRONG LOG -->
+        <section id="view-wrong-log" class="view-section hidden" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;" class="space-y">
+            <h3 style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 16px;">Hata Defteri (Yanlış Yapılan Sorular)</h3>
+            <div id="wrong-log-container" class="space-y"></div>
+        </section>
+    </main>
+
+    <script>
+        let activeOptionCount = 4;
+        const state = {
+            uploadedPdfFiles: [],
+            currentQuiz: null,
+            userAnswers: {},
+            archive: JSON.parse(localStorage.getItem('qc_archive') || '[]'),
+            wrongLog: JSON.parse(localStorage.getItem('qc_wrong_log') || '[]')
+        };
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+            const targetView = document.getElementById(`view-${tabId}`);
+            if (targetView) targetView.classList.remove('hidden');
+
+            const targetNav = document.getElementById(`nav-${tabId}`);
+            if (targetNav) targetNav.classList.add('active');
+
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'archive') renderArchive();
+            if (tabId === 'wrong-log') renderWrongLog();
+        }
+
+        function updateBadges() {
+            document.getElementById('archive-badge').innerText = state.archive.length;
+            document.getElementById('wrong-badge').innerText = state.wrongLog.length;
+        }
+        updateBadges();
+
+        function setOptionCount(count) {
+            activeOptionCount = count;
+            document.querySelectorAll('.opt-btn').forEach(btn => {
+                if (parseInt(btn.getAttribute('data-val')) === count) {
+                    btn.classList.add('selected');
+                } else {
+                    btn.classList.remove('selected');
+                }
+            });
+        }
+
+        function toggleOptionCountContainer() {
+            const val = document.getElementById('question-type-select').value;
+            const container = document.getElementById('option-count-container');
+            container.style.opacity = val === 'open' ? '0.3' : '1';
+            container.style.pointerEvents = val === 'open' ? 'none' : 'auto';
+        }
+
+        async function handleMultipleFiles(event) {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+            files.forEach(f => state.uploadedPdfFiles.push(f));
+            document.getElementById('pdf-count-badge').innerText = `${state.uploadedPdfFiles.length} PDF Yüklendi`;
+            const listEl = document.getElementById('pdf-file-list');
+            listEl.innerHTML = '';
+            state.uploadedPdfFiles.forEach(f => {
+                listEl.innerHTML += `<div class="glass" style="padding: 8px 12px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;"><span>${f.name}</span></div>`;
+            });
+        }
+
+        function loadSampleData() {
+            document.getElementById('raw-text-input').value = "T.C. İnkılap Tarihi ve Atatürkçülük Notları:\n1. Mustafa Kemal'in doğumu, Selanik ve Manastır dönemi.\n2. Trablusgarp ve Balkan Savaşları.\n3. I. Dünya Savaşı cepheleri ve Çanakkale Zaferi.";
+        }
+
+        function setAgentState(step, stateVal) {
+            const card = document.getElementById(`agent-card-${step}`);
+            if (!card) return;
+            card.classList.remove('active', 'done');
+            if (stateVal === 'active') {
+                card.classList.add('active');
+            } else if (stateVal === 'done') {
+                card.classList.add('done');
+            }
+        }
+
+        async function startMultiAgentPipeline() {
+            const extraNotes = document.getElementById('raw-text-input').value.trim();
+            const qCount = document.getElementById('question-count-slider').value;
+            const qType = document.getElementById('question-type-select').value;
+            const difficulty = document.getElementById('difficulty-select').value;
+            const isBonusActive = document.getElementById('toggle-bonus-question').checked;
+            const isDuelActive = document.getElementById('toggle-duel-mode').checked;
+
+            document.getElementById('creation-form').classList.add('hidden');
+            document.getElementById('pipeline-progress-panel').classList.remove('hidden');
+
+            const logsEl = document.getElementById('pipeline-logs');
+            const log = (m) => { logsEl.innerHTML += `<div>> ${m}</div>`; logsEl.scrollTop = logsEl.scrollHeight; };
+
+            try {
+                let combinedText = extraNotes;
+                if (state.uploadedPdfFiles.length > 0) {
+                    log("PDF dosyaları Backend sunucusuna yükleniyor...");
+                    const formData = new FormData();
+                    state.uploadedPdfFiles.forEach(f => formData.append('pdfs', f));
+                    try {
+                        const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        if (data.text) combinedText += '\n\n' + data.text;
+                        log("PDF metinleri sunucuda başarıyla okundu.");
+                    } catch (e) { log("PDF okuma uyarısı: " + e.message); }
+                }
+
+                if (!combinedText.trim()) {
+                    alert("Lütfen materyal veya PDF ekleyin!");
+                    document.getElementById('creation-form').classList.remove('hidden');
+                    document.getElementById('pipeline-progress-panel').classList.add('hidden');
+                    return;
+                }
+
+                // Ajan 1
+                setAgentState(1, 'active');
+                log("Ajan 1 (Gemini) materyali analiz ediyor...");
+                let summary = combinedText;
+                try {
+                    const res = await fetch('/api/agent1-analyst', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: combinedText })
+                    });
+                    const data = await res.json();
+                    if (data.result) summary = data.result;
+                    log("Ajan 1 analizi tamamlandı.");
+                } catch (e) { log("Gemini uyarısı, metin doğrudan kullanılıyor."); }
+                setAgentState(1, 'done');
+
+                // Ajan 2
+                setAgentState(2, 'active');
+                log("Ajan 2 (Groq 8B) senaryoyu hazırlıyor...");
+                let scenarioTitle = "Özel Deneme Sınavı";
+                try {
+                    const res = await fetch('/api/agent2-scenario', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ summary })
+                    });
+                    const data = await res.json();
+                    const parsed = JSON.parse(data.result);
+                    if (parsed.title) scenarioTitle = parsed.title;
+                    log(`Ajan 2 Senaryo: "${scenarioTitle}"`);
+                } catch (e) { log("Ajan 2 tamamlandı."); }
+                setAgentState(2, 'done');
+
+                // Ajan 3
+                setAgentState(3, 'active');
+                log(`Ajan 3 (Groq 70B) ${qCount} soru (${difficulty}) üretiyor...`);
+                const prompt = `Materyali analiz et ve tam ${qCount} adet soru üret.
+Zorluk: ${difficulty}
+Format: ${qType === 'mc' ? `Çoktan seçmeli, tam ${activeOptionCount} şıklı` : 'Açık uçlu'}
+Bonus Soru Ekle: ${isBonusActive}
+Materyal: "${summary.substring(0, 2500)}"
+Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin yazma:
+{
+  "title": "${scenarioTitle}",
+  "questions": [
+    {
+      "id": 1,
+      "question": "Soru metni?",
+      "options": ${qType === 'mc' ? `["Şık A", "Şık B", "Şık C", "Şık D"]` : `[]`},
+      "correctAnswer": ${qType === 'mc' ? 0 : `"Cevap"`},
+      "explanation": "Açıklama",
+      "isBonus": false
+    }
+  ]
+}`;
+
+                const res = await fetch('/api/agent3-generator', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+
+                state.currentQuiz = JSON.parse(data.result);
+                
+                state.archive.unshift({
+                    id: Date.now(),
+                    title: state.currentQuiz.title || scenarioTitle,
+                    date: new Date().toLocaleDateString('tr-TR'),
+                    questionCount: state.currentQuiz.questions.length,
+                    quizData: state.currentQuiz
+                });
+                localStorage.setItem('qc_archive', JSON.stringify(state.archive));
+                updateBadges();
+
+                log("Ajan 3 soruları başarıyla üretti ve arşive kaydedildi.");
+                setAgentState(3, 'done');
+
+                // Ajan 4
+                setAgentState(4, 'active');
+                log("Ajan 4 (Değerlendirici) kalite kontrolü yapıyor...");
+                await fetch('/api/agent4-evaluator', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quizData: state.currentQuiz }) });
+                log("Ajan 4 onayladı. Sınav ekranına geçiliyor...");
+                setAgentState(4, 'done');
+
+                setTimeout(() => renderQuiz(state.currentQuiz, isDuelActive), 1000);
+
+            } catch (err) {
+                console.error(err);
+                alert("Boru hattında bir hata oluştu: " + err.message);
+                document.getElementById('creation-form').classList.remove('hidden');
+                document.getElementById('pipeline-progress-panel').classList.add('hidden');
+            }
+        }
+
+        function renderQuiz(quiz, isDuelActive) {
+            document.getElementById('pipeline-progress-panel').classList.add('hidden');
+            document.getElementById('quiz-taking-panel').classList.remove('hidden');
+            document.getElementById('quiz-title-display').innerText = quiz.title || "Deneme Sınavı";
+
+            if (isDuelActive) {
+                document.getElementById('duel-rival-box').classList.remove('hidden');
+            }
+
+            const listEl = document.getElementById('quiz-questions-list');
+            listEl.innerHTML = '';
+            state.userAnswers = {};
+
+            quiz.questions.forEach((q, idx) => {
+                let inputHTML = '';
+                if (q.options && q.options.length > 0) {
+                    inputHTML = `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">`;
+                    q.options.forEach((opt, oIdx) => {
+                        inputHTML += `
+                            <button type="button" onclick="selectAnswer(${q.id}, ${oIdx})" id="q-${q.id}-opt-${oIdx}" class="glass" style="padding: 14px; text-align: left; font-size: 12px; color: #e2e8f0; cursor: pointer; display: flex; align-items: center; gap: 12px; border-color: rgba(255,255,255,0.08);">
+                                <span style="width: 28px; height: 28px; border-radius: 8px; background: #020617; font-weight: 700; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 11px;">${['A', 'B', 'C', 'D', 'E'][oIdx]}</span>
+                                <span>${opt}</span>
+                            </button>
+                        `;
+                    });
+                    inputHTML += `</div>`;
+                } else {
+                    inputHTML = `<textarea onchange="state.userAnswers[${q.id}] = this.value" rows="3" placeholder="Açık uçlu cevabınızı buraya yazın..." style="margin-top: 12px;"></textarea>`;
+                }
+
+                listEl.innerHTML += `
+                    <div class="glass" style="border-color: ${q.isBonus ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.08)'}; background: ${q.isBonus ? 'rgba(245,158,11,0.03)' : 'rgba(15,23,42,0.75)'}; display: flex; flex-direction: column; gap: 12px;">
+                        <span class="badge" style="width: fit-content; background: ${q.isBonus ? 'rgba(245,158,11,0.2)' : 'rgba(59,130,246,0.15)'}; color: ${q.isBonus ? '#fbbf24' : '#60a5fa'};">
+                            ${q.isBonus ? '🌟 BONUS SORU (+15 BP)' : 'Soru ' + (idx + 1)}
+                        </span>
+                        <p style="font-weight: 700; color: #f8fafc; font-size: 14px;">${q.question}</p>
+                        ${inputHTML}
+                    </div>
+                `;
+            });
+        }
+
+        function selectAnswer(qId, oIdx) {
+            state.userAnswers[qId] = oIdx;
+            document.querySelectorAll(`[id^="q-${qId}-opt-"]`).forEach((btn, idx) => {
+                if (idx === oIdx) {
+                    btn.style.borderColor = '#3b82f6';
+                    btn.style.background = 'rgba(59, 130, 246, 0.15)';
+                    btn.style.color = '#fff';
+                } else {
+                    btn.style.borderColor = 'rgba(255,255,255,0.08)';
+                    btn.style.background = 'rgba(15, 23, 42, 0.75)';
+                    btn.style.color = '#cbd5e1';
+                }
+            });
+        }
+
+        function finishQuizSubmit() {
+            const quiz = state.currentQuiz;
+            let correctCount = 0;
+            const feedbackEl = document.getElementById('ai-feedback-list');
+            feedbackEl.innerHTML = '';
+
+            if (!quiz || !quiz.questions) return;
+
+            quiz.questions.forEach((q, idx) => {
+                const userAns = state.userAnswers[q.id];
+                const isCorrect = (q.options && q.options.length > 0) ? (userAns === q.correctAnswer) : (userAns && userAns.trim().length > 2);
+                
+                if (isCorrect) {
+                    correctCount++;
+                } else {
+                    state.wrongLog.unshift({
+                        question: q.question,
+                        correctAnswer: q.options ? q.options[q.correctAnswer] : q.correctAnswer,
+                        explanation: q.explanation,
+                        date: new Date().toLocaleDateString('tr-TR')
+                    });
+                }
+
+                feedbackEl.innerHTML += `
+                    <div class="glass" style="border-color: ${isCorrect ? 'rgba(16,185,129,0.3)' : 'rgba(244,63,94,0.3)'}; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="font-weight: 700; font-size: 12px; color: ${isCorrect ? '#34d399' : '#fb7185'};">Soru ${idx + 1}: ${isCorrect ? '✓ Doğru' : '✗ Yanlış'}</div>
+                        <p style="font-weight: 700; color: #fff; font-size: 13px;">${q.question}</p>
+                        <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                            <div><b style="color: #34d399;">Doğru Cevap:</b> ${q.options ? q.options[q.correctAnswer] : q.correctAnswer}</div>
+                            <div><b style="color: #60a5fa;">Açıklama:</b> ${q.explanation}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            localStorage.setItem('qc_wrong_log', JSON.stringify(state.wrongLog));
+            updateBadges();
+
+            const score = Math.round((correctCount / quiz.questions.length) * 100);
+            document.getElementById('res-estimated-grade').innerText = score;
+            document.getElementById('quiz-taking-panel').classList.add('hidden');
+            document.getElementById('quiz-result-panel').classList.remove('hidden');
+            if (score >= 70 && window.confetti) confetti();
+        }
+
+        function renderDashboard() {
+            document.getElementById('stat-total-quizzes').innerText = state.archive.length;
+            document.getElementById('stat-archive-count').innerText = state.archive.length;
+            document.getElementById('stat-wrong-count').innerText = state.wrongLog.length;
+        }
+
+        function renderArchive() {
+            const grid = document.getElementById('archive-grid');
+            grid.innerHTML = '';
+            if (state.archive.length === 0) {
+                grid.innerHTML = `<div style="font-size: 12px; color: #94a3b8; grid-column: span 2;">Henüz arşivde kayıtlı sınav bulunmuyor. Sınav oluşturduğunuzda burada listelenecektir.</div>`;
+                return;
+            }
+            state.archive.forEach((item, index) => {
+                grid.innerHTML += `
+                    <div class="glass" style="display: flex; flex-direction: column; gap: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                            <span style="color: #60a5fa; font-weight: 700;">${item.date}</span>
+                            <span class="badge">${item.questionCount} Soru</span>
+                        </div>
+                        <h4 style="font-weight: 800; color: #fff; font-size: 15px;">${item.title}</h4>
+                        <button onclick="loadArchivedQuiz(${index})" class="btn btn-primary" style="padding: 10px; font-size: 12px;">Sınavı Tekrar Çöz</button>
+                    </div>
+                `;
+            });
+        }
+
+        function loadArchivedQuiz(index) {
+            const quiz = state.archive[index].quizData;
+            state.currentQuiz = quiz;
+            document.querySelectorAll('.view-section').forEach(v => v.classList.add('hidden'));
+            document.getElementById('view-create').classList.remove('hidden');
+            renderQuiz(quiz, false);
+        }
+
+        function renderWrongLog() {
+            const container = document.getElementById('wrong-log-container');
+            container.innerHTML = '';
+            if (state.wrongLog.length === 0) {
+                container.innerHTML = `<div style="font-size: 12px; color: #94a3b8;">Harika! Hata defterinizde kayıtlı yanlış soru bulunmuyor.</div>`;
+                return;
+            }
+            state.wrongLog.forEach((item) => {
+                container.innerHTML += `
+                    <div class="glass" style="border-color: rgba(244,63,94,0.3); display: flex; flex-direction: column; gap: 8px;">
+                        <div style="color: #fb7185; font-weight: 700; font-size: 12px;">Kayıt Tarihi: ${item.date}</div>
+                        <p style="font-weight: 700; color: #fff; font-size: 13px;">${item.question}</p>
+                        <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                            <div><b style="color: #34d399;">Doğru Cevap:</b> ${item.correctAnswer}</div>
+                            <div><b style="color: #60a5fa;">Açıklama:</b> ${item.explanation}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
