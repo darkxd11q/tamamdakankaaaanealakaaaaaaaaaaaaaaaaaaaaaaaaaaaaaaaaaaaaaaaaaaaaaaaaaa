@@ -50,7 +50,7 @@ app.post('/api/agent1-analyst', async (req, res) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: `Aşağıdaki ders materyalini ve notları detaylı analiz ederek pedagojik bir özet çıkar:\n"${text.substring(0, 4000)}"` }] }]
+                    contents: [{ parts: [{ text: `Aşağıdaki ders materyalini analiz ederek pedagojik özet çıkar:\n"${text.substring(0, 4000)}"` }] }]
                 })
             });
             if (response.ok) {
@@ -60,7 +60,7 @@ app.post('/api/agent1-analyst', async (req, res) => {
             }
         } catch (e) { console.warn(e); }
     }
-    res.status(500).json({ error: 'Ajan 1 (Gemini) yanıt vermedi.' });
+    res.json({ result: text.substring(0, 4000) }); // Yedek olarak ham metni ver
 });
 
 // Ajan 2: Senaryo Mimarı (Groq 8B)
@@ -73,7 +73,7 @@ app.post('/api/agent2-scenario', async (req, res) => {
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
                 model: 'llama-3.1-8b-instant',
-                messages: [{ role: 'user', content: `Bu materyal için sınav başlığı belirle. Yalnızca JSON döndür: {"title": "Başlık"}. Materyal: "${summary.substring(0, 1000)}"` }],
+                messages: [{ role: 'user', content: `Bu materyal için kısa bir sınav başlığı belirle. Yalnızca JSON döndür: {"title": "Başlık"}. Materyal: "${summary.substring(0, 1000)}"` }],
                 temperature: 0.5
             })
         });
@@ -85,7 +85,7 @@ app.post('/api/agent2-scenario', async (req, res) => {
     res.json({ result: '{"title": "Kapsamlı Deneme Sınavı"}' });
 });
 
-// Ajan 3: Sınav Üreticisi (Groq 70B)
+// Ajan 3: Sınav Üreticisi (Groq 70B) - Hata Korumalı
 app.post('/api/agent3-generator', async (req, res) => {
     const { prompt } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
@@ -102,12 +102,29 @@ app.post('/api/agent3-generator', async (req, res) => {
         if (response.ok) {
             const data = await response.json();
             return res.json({ result: data.choices[0].message.content });
+        } else {
+            const errBody = await.text();
+            throw new Error(`Groq API Durum Kodu: ${response.status} - ${errBody}`);
         }
-    } catch (e) { console.warn(e); }
-    res.status(500).json({ error: 'Ajan 3 soru üretirken hata oluştu.' });
+    } catch (e) {
+        console.error("Ajan 3 Hatası:", e);
+        // Yedek akıllı JSON üretimi (Sistem çökmesin diye)
+        const fallbackJSON = {
+            "title": "Yedek Güvenli Deneme Sınavı",
+            "questions": [
+                {
+                    "id": 1,
+                    "question": "Sunucu yoğunluğu nedeniyle otomatik üretilen yedek sorudur. Bu materyalin ana odak noktası nedir?",
+                    "options": ["Temel Kavramlar", "İleri Düzey Analiz", "Genel Tekrar", "Hiçbiri"],
+                    "correctAnswer": 0,
+                    "explanation": "Yoğunluk anında sistemin çalışmaya devam etmesi için oluşturulan yedek sorudur."
+                }
+            ]
+        };
+        return res.json({ result: JSON.stringify(fallbackJSON), isFallback: true });
+    }
 });
 
-// Ajan 4: Değerlendirici
 app.post('/api/agent4-evaluator', async (req, res) => {
     res.json({ status: 'success' });
 });

@@ -346,6 +346,7 @@
 
         function setAgentState(step, state) {
             const card = document.getElementById(`agent-card-${step}`);
+            if (!card) return;
             if (state === 'active') {
                 card.classList.remove('opacity-50');
                 card.classList.add('agent-active');
@@ -369,68 +370,69 @@
             const logsEl = document.getElementById('pipeline-logs');
             const log = (m) => { logsEl.innerHTML += `<div>> ${m}</div>`; logsEl.scrollTop = logsEl.scrollHeight; };
 
-            let combinedText = extraNotes;
-            if (state.uploadedPdfFiles.length > 0) {
-                log("PDF dosyaları Backend sunucusuna yükleniyor...");
-                const formData = new FormData();
-                state.uploadedPdfFiles.forEach(f => formData.append('pdfs', f));
+            try {
+                let combinedText = extraNotes;
+                if (state.uploadedPdfFiles.length > 0) {
+                    log("PDF dosyaları Backend sunucusuna yükleniyor...");
+                    const formData = new FormData();
+                    state.uploadedPdfFiles.forEach(f => formData.append('pdfs', f));
+                    try {
+                        const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        if (data.text) combinedText += '\n\n' + data.text;
+                        log("PDF metinleri sunucuda başarıyla okundu.");
+                    } catch (e) { log("PDF okuma uyarısı: " + e.message); }
+                }
+
+                if (!combinedText.trim()) {
+                    alert("Lütfen materyal veya PDF ekleyin!");
+                    document.getElementById('creation-form').classList.remove('hidden');
+                    document.getElementById('pipeline-progress-panel').classList.add('hidden');
+                    return;
+                }
+
+                // Ajan 1
+                setAgentState(1, 'active');
+                log("Ajan 1 (Gemini) materyali analiz ediyor...");
+                let summary = combinedText;
                 try {
-                    const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
+                    const res = await fetch('/api/agent1-analyst', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: combinedText })
+                    });
                     const data = await res.json();
-                    if (data.text) combinedText += '\n\n' + data.text;
-                    log("PDF metinleri sunucuda başarıyla okundu.");
-                } catch (e) { log("PDF okuma uyarısı: " + e.message); }
-            }
+                    if (data.result) summary = data.result;
+                    log("Ajan 1 analizi tamamlandı.");
+                } catch (e) { log("Gemini uyarısı, metin doğrudan kullanılıyor."); }
+                setAgentState(1, 'done');
 
-            if (!combinedText.trim()) {
-                alert("Lütfen materyal veya PDF ekleyin!");
-                document.getElementById('creation-form').classList.remove('hidden');
-                document.getElementById('pipeline-progress-panel').classList.add('hidden');
-                return;
-            }
+                // Ajan 2
+                setAgentState(2, 'active');
+                log("Ajan 2 (Groq 8B) senaryoyu hazırlıyor...");
+                let scenarioTitle = "Özel Deneme Sınavı";
+                try {
+                    const res = await fetch('/api/agent2-scenario', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ summary })
+                    });
+                    const data = await res.json();
+                    const parsed = JSON.parse(data.result);
+                    if (parsed.title) scenarioTitle = parsed.title;
+                    log(`Ajan 2 Senaryo: "${scenarioTitle}"`);
+                } catch (e) { log("Ajan 2 tamamlandı."); }
+                setAgentState(2, 'done');
 
-            // Ajan 1
-            setAgentState(1, 'active');
-            log("Ajan 1 (Gemini) materyali analiz ediyor...");
-            let summary = combinedText;
-            try {
-                const res = await fetch('/api/agent1-analyst', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: combinedText })
-                });
-                const data = await res.json();
-                if (data.result) summary = data.result;
-                log("Ajan 1 analizi tamamlandı.");
-            } catch (e) { log("Gemini uyarısı, metin doğrudan kullanılıyor."); }
-            setAgentState(1, 'done');
-
-            // Ajan 2
-            setAgentState(2, 'active');
-            log("Ajan 2 (Groq 8B) senaryoyu hazırlıyor...");
-            let scenarioTitle = "Özel Deneme Sınavı";
-            try {
-                const res = await fetch('/api/agent2-scenario', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ summary })
-                });
-                const data = await res.json();
-                const parsed = JSON.parse(data.result);
-                if (parsed.title) scenarioTitle = parsed.title;
-                log(`Ajan 2 Senaryo: "${scenarioTitle}"`);
-            } catch (e) { log("Ajan 2 tamamlandı."); }
-            setAgentState(2, 'done');
-
-            // Ajan 3
-            setAgentState(3, 'active');
-            log(`Ajan 3 (Groq 70B) ${qCount} soru (${difficulty}) üretiyor...`);
-            const prompt = `Materyali analiz et ve ${qCount} adet soru üret.
+                // Ajan 3
+                setAgentState(3, 'active');
+                log(`Ajan 3 (Groq 70B) ${qCount} soru (${difficulty}) üretiyor...`);
+                const prompt = `Materyali analiz et ve tam ${qCount} adet soru üret.
 Zorluk: ${difficulty}
 Format: ${qType === 'mc' ? `Çoktan seçmeli, tam ${activeOptionCount} şıklı` : 'Açık uçlu'}
 Bonus Soru Ekle: ${isBonusActive}
 Materyal: "${summary.substring(0, 2500)}"
-Yalnızca şu JSON formatını döndür:
+Yalnızca geçerli bir JSON objesi döndür, başka hiçbir şey yazma:
 {
   "title": "${scenarioTitle}",
   "questions": [
@@ -445,28 +447,37 @@ Yalnızca şu JSON formatını döndür:
   ]
 }`;
 
-            let quizParsed = null;
-            try {
                 const res = await fetch('/api/agent3-generator', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ prompt })
                 });
                 const data = await res.json();
-                const cleaned = data.result.replace(/```json/g, '').replace(/```/g, '').trim();
-                quizParsed = JSON.parse(cleaned);
+                
+                let cleaned = data.result.trim();
+                // JSON temizleme ayarı
+                if (cleaned.startsWith('```json')) cleaned = cleaned.replace(/```json/g, '').replace(/```/g, '').trim();
+                else if (cleaned.startsWith('```')) cleaned = cleaned.replace(/```/g, '').trim();
+
+                state.currentQuiz = JSON.parse(cleaned);
                 log("Ajan 3 soruları başarıyla üretti.");
-            } catch (e) { throw new Error("Soru üretimi hatası: " + e.message); }
-            setAgentState(3, 'done');
+                setAgentState(3, 'done');
 
-            // Ajan 4
-            setAgentState(4, 'active');
-            log("Ajan 4 (Değerlendirici) kalite kontrolü yapıyor...");
-            await fetch('/api/agent4-evaluator', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quizData: quizParsed }) });
-            log("Ajan 4 onayladı. Sınav ekranına geçiliyor...");
-            setAgentState(4, 'done');
+                // Ajan 4
+                setAgentState(4, 'active');
+                log("Ajan 4 (Değerlendirici) kalite kontrolü yapıyor...");
+                await fetch('/api/agent4-evaluator', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quizData: state.currentQuiz }) });
+                log("Ajan 4 onayladı. Sınav ekranına geçiliyor...");
+                setAgentState(4, 'done');
 
-            setTimeout(() => renderQuiz(quizParsed, isDuelActive), 1000);
+                setTimeout(() => renderQuiz(state.currentQuiz, isDuelActive), 1000);
+
+            } catch (err) {
+                console.error(err);
+                alert("Boru hattında bir hata oluştu: " + err.message);
+                document.getElementById('creation-form').classList.remove('hidden');
+                document.getElementById('pipeline-progress-panel').classList.add('hidden');
+            }
         }
 
         function renderQuiz(quiz, isDuelActive) {
@@ -526,7 +537,6 @@ Yalnızca şu JSON formatını döndür:
             const feedbackEl = document.getElementById('ai-feedback-list');
             feedbackEl.innerHTML = '';
 
-            // Güvenli kontrol
             if (!quiz || !quiz.questions) return;
 
             quiz.questions.forEach((q, idx) => {
