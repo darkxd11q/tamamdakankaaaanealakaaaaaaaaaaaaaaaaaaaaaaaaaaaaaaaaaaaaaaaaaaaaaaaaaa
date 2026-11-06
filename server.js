@@ -46,7 +46,7 @@ app.post('/api/agent1-analyst', async (req, res) => {
 
     for (const model of models) {
         try {
-            const response = await fetch(`[https://generativelanguage.googleapis.com/v1beta/models/$](https://generativelanguage.googleapis.com/v1beta/models/$){model}:generateContent?key=${apiKey}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -68,7 +68,7 @@ app.post('/api/agent2-scenario', async (req, res) => {
     const { summary } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
     try {
-        const response = await fetch('[https://api.groq.com/openai/v1/chat/completions](https://api.groq.com/openai/v1/chat/completions)', {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
@@ -88,12 +88,12 @@ app.post('/api/agent2-scenario', async (req, res) => {
     res.json({ result: '{"title": "Kapsamlı Deneme Sınavı"}' });
 });
 
-// Ajan 3: Sınav Üreticisi (Groq 70B) - Backend Temizleme Garantili
+// Ajan 3: Sınav Üreticisi (Groq 70B) - URL Hatası Düzeltildi
 app.post('/api/agent3-generator', async (req, res) => {
     const { prompt } = req.body;
     const apiKey = process.env.GROQ_API_KEY;
     try {
-        const response = await fetch('[https://api.groq.com/openai/v1/chat/completions](https://api.groq.com/openai/v1/chat/completions)', {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
@@ -106,7 +106,6 @@ app.post('/api/agent3-generator', async (req, res) => {
             const data = await response.json();
             let rawContent = data.choices[0].message.content.trim();
             
-            // Markdown etiketlerini sunucuda tamamen temizle ki frontend patlamasın!
             if (rawContent.includes('```json')) {
                 rawContent = rawContent.split('```json')[1].split('```')[0].trim();
             } else if (rawContent.includes('```')) {
