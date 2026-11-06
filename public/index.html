@@ -11,18 +11,15 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #020617; color: #f8fafc; min-height: 100vh; display: flex; overflow-x: hidden; }
         
-        /* Layout */
         aside { width: 280px; background: rgba(15, 23, 42, 0.95); border-right: 1px solid rgba(255, 255, 255, 0.08); display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; z-index: 40; }
         main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; }
         header { padding: 20px 32px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 30; }
         
-        /* Glass & Components */
         .glass { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; padding: 24px; }
-        .btn { padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 13px; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn { padding: 12px 20px; border-radius: 14px; font-weight: 700; font-size: 13px; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
         .btn-primary { background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4); }
         .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
         
-        /* Sidebar Nav */
         .sidebar-brand { padding: 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
         .brand-icon { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #2563eb, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; }
         nav { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
@@ -30,20 +27,15 @@
         .nav-btn:hover { background: rgba(255, 255, 255, 0.04); color: #fff; }
         .nav-btn.active { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
         
-        /* Form Elements */
         input, select, textarea { width: 100%; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px; color: #f8fafc; font-size: 13px; outline: none; font-family: inherit; }
         input:focus, select:focus, textarea:focus { border-color: #3b82f6; }
         
-        /* Grid Helpers */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
         .space-y > * + * { margin-top: 20px; }
-        
-        /* Utilities */
         .hidden { display: none !important; }
         .badge { font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
         
-        /* Agent Cards */
         .agent-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
         .agent-card { background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 16px; opacity: 0.5; }
         .agent-card.active { opacity: 1; border-color: #3b82f6; box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
@@ -52,11 +44,8 @@
         .opt-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); background: #0f172a; color: #cbd5e1; font-weight: 700; font-size: 12px; cursor: pointer; }
         .opt-btn.selected { border-color: #3b82f6; background: rgba(59, 130, 246, 0.2); color: #fff; }
         
-        @media(max-width: 768px) {
-            body { flex-direction: column; }
-            aside { width: 100%; height: auto; position: relative; }
-            .grid-2, .grid-4, .agent-grid { grid-template-columns: 1fr; }
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
     </style>
 </head>
 <body>
@@ -72,17 +61,14 @@
         </div>
 
         <nav>
-            <button onclick="switchTab('create')" id="nav-create" class="nav-btn active">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active">
+                <i class="fa-solid fa-house" style="width: 20px;"></i> Ana Panel
+            </button>
+            <button onclick="switchTab('create')" id="nav-create" class="nav-btn">
                 <i class="fa-solid fa-wand-magic-sparkles" style="width: 20px;"></i> Sınav Oluştur
             </button>
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn">
-                <i class="fa-solid fa-chart-pie" style="width: 20px;"></i> Ana Panel
-            </button>
             <button onclick="switchTab('archive')" id="nav-archive" class="nav-btn">
-                <i class="fa-solid fa-box-archive" style="width: 20px;"></i> Sınav Arşivi <span id="archive-badge" class="badge" style="margin-left: auto;">0</span>
-            </button>
-            <button onclick="switchTab('wrong-log')" id="nav-wrong-log" class="nav-btn">
-                <i class="fa-solid fa-book-bookmark" style="width: 20px; color: #f43f5e;"></i> Hata Defteri <span id="wrong-badge" class="badge" style="background: rgba(244, 63, 94, 0.15); color: #fb7185; margin-left: auto;">0</span>
+                <i class="fa-solid fa-box-archive" style="width: 20px;"></i> Sınav Arşivi & Analiz <span id="archive-badge" class="badge" style="margin-left: auto;">0</span>
             </button>
         </nav>
     </aside>
@@ -90,22 +76,63 @@
     <!-- Main Content Area -->
     <main>
         <header>
-            <h2 id="header-title" style="font-size: 16px; font-weight: 700; color: #fff;">Sınav Oluşturucu</h2>
-            <p id="header-subtitle" style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Çoklu PDF + Özel Not Analizör ve Derin Düşünme Bütçeli Ajan Sistemi</p>
+            <h2 id="header-title" style="font-size: 16px; font-weight: 700; color: #fff;">Ana Panel</h2>
+            <p id="header-subtitle" style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Yapay Zeka Destekli Akıllı Sınav Mimarisi</p>
         </header>
 
-        <!-- VIEW 1: CREATE -->
-        <section id="view-create" class="view-section" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;" class="space-y">
-            <div id="creation-form" class="space-y">
-                <!-- PDF & Notes Panel -->
-                <div class="glass" style="display: flex; flex-direction: column; gap: 20px;">
-                    <div style="display: flex; align-items: center; justify-content: border-bottom; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="width: 32px; height: 32px; border-radius: 10px; background: rgba(59,130,246,0.2); color: #60a5fa; display: flex; align-items: center; justify-content: center; font-weight: 700;">1</div>
-                            <div>
-                                <h3 style="font-size: 15px; font-weight: 700; color: #fff;">Çoklu Belge ve Ek Not Yükleme</h3>
-                                <p style="font-size: 12px; color: #94a3b8;">PDF yükleyin veya özel ders notlarınızı yazın.</p>
+        <!-- VIEW 0: DASHBOARD (ANA PANEL - İLK AÇILAN) -->
+        <section id="view-dashboard" class="view-section animate-fade" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;">
+            <div class="space-y">
+                <!-- Karşılama Kartı -->
+                <div class="glass" style="background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(124,58,237,0.15)); border: 1px solid rgba(59,130,246,0.3); display: flex; justify-content: space-between; align-items: center; padding: 36px;">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <span class="badge" style="width: fit-content;">👋 Hoş Geldin Mehmet Emin!</span>
+                        <h2 style="font-size: 24px; font-weight: 800; color: #fff;">Bugün hangi konuyu fethediyoruz?</h2>
+                        <p style="font-size: 13px; color: #94a3b8; max-width: 500px;">PDF belgelerini yükle veya notlarını gir, çoklu ajan sistemimiz senin için en kusursuz sınavı hazırlasın.</p>
+                    </div>
+                    <button onclick="switchTab('create')" class="btn btn-primary" style="padding: 16px 28px; font-size: 14px;">
+                        <i class="fa-solid fa-plus"></i> Hemen Sınav Oluştur
+                    </button>
+                </div>
+
+                <!-- Son Çözülen / Hızlı İstatistikler -->
+                <div class="grid-2">
+                    <div class="glass" style="display: flex; flex-direction: column; gap: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3 style="font-size: 15px; font-weight: 700; color: #fff;"><i class="fa-solid fa-clock-rotate-left" style="color: #60a5fa; margin-right: 8px;"></i> Son Sınav Durumu</h3>
+                            <button onclick="switchTab('archive')" style="background: none; border: none; color: #60a5fa; font-size: 12px; font-weight: 600; cursor: pointer;">Tümünü Gör</button>
+                        </div>
+                        <div id="dashboard-last-quiz-card" style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                            <div style="color: #94a3b8; font-size: 12px;">Henüz kayıtlı bir sınav bulunmuyor.</div>
+                        </div>
+                    </div>
+
+                    <div class="glass" style="display: flex; flex-direction: column; gap: 16px;">
+                        <h3 style="font-size: 15px; font-weight: 700; color: #fff;"><i class="fa-solid fa-chart-line" style="color: #a78bfa; margin-right: 8px;"></i> Genel Performans Özetim</h3>
+                        <div class="grid-2" style="gap: 12px;">
+                            <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 4px;">
+                                <div style="font-size: 11px; color: #94a3b8;">Toplam Sınav</div>
+                                <div id="dash-total-q" style="font-size: 24px; font-weight: 900; color: #60a5fa;">0</div>
                             </div>
+                            <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 4px;">
+                                <div style="font-size: 11px; color: #94a3b8;">Hata Defteri Kaydı</div>
+                                <div id="dash-total-wrong" style="font-size: 24px; font-weight: 900; color: #fb7185;">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 1: CREATE -->
+        <section id="view-create" class="view-section hidden animate-fade" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;">
+            <div id="creation-form" class="space-y">
+                <div class="glass" style="display: flex; flex-direction: column; gap: 20px;">
+                    <div style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px;">
+                        <div style="width: 32px; height: 32px; border-radius: 10px; background: rgba(59,130,246,0.2); color: #60a5fa; display: flex; align-items: center; justify-content: center; font-weight: 700;">1</div>
+                        <div>
+                            <h3 style="font-size: 15px; font-weight: 700; color: #fff;">Çoklu Belge ve Ek Not Yükleme</h3>
+                            <p style="font-size: 12px; color: #94a3b8;">PDF yükleyin veya özel ders notlarınızı yazın.</p>
                         </div>
                     </div>
 
@@ -135,7 +162,6 @@
                     </div>
                 </div>
 
-                <!-- Parameters & Options Panel -->
                 <div class="glass" style="display: flex; flex-direction: column; gap: 20px;">
                     <div class="grid-4">
                         <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -176,7 +202,6 @@
                         </div>
                     </div>
 
-                    <!-- Toggles -->
                     <div class="grid-4" style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px;">
                         <label style="background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
                             <div><span style="font-size: 11px; font-weight: 700; color: #fbbf24; display: block;">+1 Bonus Soru</span><span style="font-size: 9px; color: #94a3b8;">+15 Puan Değerinde</span></div>
@@ -196,7 +221,6 @@
                         </label>
                     </div>
 
-                    <!-- Slider -->
                     <div class="grid-2">
                         <div style="display: flex; flex-direction: column; gap: 8px;">
                             <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: #cbd5e1;">
@@ -225,7 +249,7 @@
             </div>
 
             <!-- Progress Panel -->
-            <div id="pipeline-progress-panel" class="glass hidden" style="border-color: rgba(59,130,246,0.3); display: flex; flex-direction: column; gap: 20px;">
+            <div id="pipeline-progress-panel" class="glass hidden animate-fade" style="border-color: rgba(59,130,246,0.3); display: flex; flex-direction: column; gap: 20px;">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <div style="width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; box-shadow: 0 0 10px #3b82f6;"></div>
                     <div>
@@ -244,7 +268,7 @@
                     </div>
                     <div id="agent-card-3" class="agent-card">
                         <div style="font-size: 12px; font-weight: 700; color: #34d399; margin-bottom: 4px;">Ajan 3: Sınav Üreticisi</div>
-                        <div style="font-size: 10px; color: #94a3b8;">Groq Llama 70B</div>
+                        <div style="font-size: 10px; color: #94a3b8;">Groq 120B</div>
                     </div>
                     <div id="agent-card-4" class="agent-card">
                         <div style="font-size: 12px; font-weight: 700; color: #fbbf24; margin-bottom: 4px;">Ajan 4: Değerlendirici</div>
@@ -257,7 +281,7 @@
             </div>
 
             <!-- Quiz Taking Panel -->
-            <div id="quiz-taking-panel" class="hidden space-y">
+            <div id="quiz-taking-panel" class="hidden space-y animate-fade">
                 <div class="glass" style="display: flex; justify-content: space-between; align-items: center; border-color: rgba(59,130,246,0.3);">
                     <div>
                         <span class="badge">Özel Sınav</span>
@@ -280,7 +304,7 @@
             </div>
 
             <!-- Results Panel -->
-            <div id="quiz-result-panel" class="glass hidden space-y" style="border-color: rgba(59,130,246,0.4);">
+            <div id="quiz-result-panel" class="glass hidden space-y animate-fade" style="border-color: rgba(59,130,246,0.4);">
                 <div class="glass" style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <span class="badge">Sınav Karnesi</span>
@@ -292,40 +316,24 @@
                     </div>
                 </div>
                 <div id="ai-feedback-list" class="space-y"></div>
-                <div style="display: flex; justify-content: flex-end;">
+                <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                    <button onclick="switchTab('archive')" class="btn" style="background: #1e293b; color: #cbd5e1; padding: 12px 24px; font-size: 12px;">Arşive Git</button>
                     <button onclick="switchTab('create')" class="btn btn-primary" style="padding: 12px 24px; font-size: 12px;">Yeni Sınav Oluştur</button>
                 </div>
             </div>
         </section>
 
-        <!-- VIEW 2: DASHBOARD -->
-        <section id="view-dashboard" class="view-section hidden" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;">
-            <div class="grid-4" style="grid-template-columns: repeat(3, 1fr);">
-                <div class="glass" style="display: flex; flex-direction: column; gap: 8px;">
-                    <div style="font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Toplam Üretilen Sınav</div>
-                    <div id="stat-total-quizzes" style="font-size: 32px; font-weight: 900; color: #60a5fa;">0</div>
+        <!-- VIEW 2: ARCHIVE & WRONG LOG (BİRLEŞTİRİLMİŞ ARŞİV VE ANALİZ) -->
+        <section id="view-archive" class="view-section hidden animate-fade" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;">
+            <div class="space-y">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="font-size: 18px; font-weight: 800; color: #fff;">Sınav Arşivi ve Hata Analizi</h3>
+                        <p style="font-size: 12px; color: #94a3b8; margin-top: 2px;">Çözdüğün tüm sınavlar, doğru/yanlış analizleri ve hatalı soruların</p>
+                    </div>
                 </div>
-                <div class="glass" style="display: flex; flex-direction: column; gap: 8px;">
-                    <div style="font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Arşivlenen Sınavlar</div>
-                    <div id="stat-archive-count" style="font-size: 32px; font-weight: 900; color: #a78bfa;">0</div>
-                </div>
-                <div class="glass" style="display: flex; flex-direction: column; gap: 8px;">
-                    <div style="font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Hata Defterindeki Sorular</div>
-                    <div id="stat-wrong-count" style="font-size: 32px; font-weight: 900; color: #fb7185;">0</div>
-                </div>
+                <div id="archive-grid" style="display: flex; flex-direction: column; gap: 16px;"></div>
             </div>
-        </section>
-
-        <!-- VIEW 3: ARCHIVE -->
-        <section id="view-archive" class="view-section hidden" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;" class="space-y">
-            <h3 style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 16px;">Sınav Arşivi</h3>
-            <div id="archive-grid" class="grid-2"></div>
-        </section>
-
-        <!-- VIEW 4: WRONG LOG -->
-        <section id="view-wrong-log" class="view-section hidden" style="padding: 32px; max-width: 1100px; width: 100%; margin: 0 auto;" class="space-y">
-            <h3 style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 16px;">Hata Defteri (Yanlış Yapılan Sorular)</h3>
-            <div id="wrong-log-container" class="space-y"></div>
         </section>
     </main>
 
@@ -335,8 +343,7 @@
             uploadedPdfFiles: [],
             currentQuiz: null,
             userAnswers: {},
-            archive: JSON.parse(localStorage.getItem('qc_archive') || '[]'),
-            wrongLog: JSON.parse(localStorage.getItem('qc_wrong_log') || '[]')
+            archive: JSON.parse(localStorage.getItem('qc_archive') || '[]')
         };
 
         function switchTab(tabId) {
@@ -349,14 +356,22 @@
             const targetNav = document.getElementById(`nav-${tabId}`);
             if (targetNav) targetNav.classList.add('active');
 
+            const titles = {
+                'dashboard': ['Ana Panel', 'Yapay Zeka Destekli Akıllı Sınav Mimarisi'],
+                'create': ['Sınav Oluşturucu', 'Çoklu PDF + Özel Not Analizör ve Derin Düşünme Bütçeli Ajan Sistemi'],
+                'archive': ['Sınav Arşivi & Hata Analizi', 'Geçmiş sınavların, detaylı analizlerin ve yanlış yapılan konuların']
+            };
+            if (titles[tabId]) {
+                document.getElementById('header-title').innerText = titles[tabId][0];
+                document.getElementById('header-subtitle').innerText = titles[tabId][1];
+            }
+
             if (tabId === 'dashboard') renderDashboard();
             if (tabId === 'archive') renderArchive();
-            if (tabId === 'wrong-log') renderWrongLog();
         }
 
         function updateBadges() {
             document.getElementById('archive-badge').innerText = state.archive.length;
-            document.getElementById('wrong-badge').innerText = state.wrongLog.length;
         }
         updateBadges();
 
@@ -475,8 +490,8 @@
 
                 // Ajan 3
                 setAgentState(3, 'active');
-                log(`Ajan 3 (Groq 70B) ${qCount} soru (${difficulty}) üretiyor...`);
-                const prompt = `Materyali analiz et ve tam ${qCount} adet soru üret.
+                log(`Ajan 3 (Groq 120B) tam ${qCount} adet soru (${difficulty}) üretiyor...`);
+                const prompt = `Materyali analiz et ve tam ${qCount} adet soru üret. Eksiksiz olarak tam ${qCount} soru olmalıdır.
 Zorluk: ${difficulty}
 Format: ${qType === 'mc' ? `Çoktan seçmeli, tam ${activeOptionCount} şıklı` : 'Açık uçlu'}
 Bonus Soru Ekle: ${isBonusActive}
@@ -489,7 +504,7 @@ Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin 
       "id": 1,
       "question": "Soru metni?",
       "options": ${qType === 'mc' ? `["Şık A", "Şık B", "Şık C", "Şık D"]` : `[]`},
-      "correctAnswer": ${qType === 'mc' ? 0 : `"Cevap"`},
+      "correctAnswer": ${qType === 'mc' ? 0 : `"Örnek Cevap / Kriter"`},
       "explanation": "Açıklama",
       "isBonus": false
     }
@@ -506,17 +521,7 @@ Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin 
 
                 state.currentQuiz = JSON.parse(data.result);
                 
-                state.archive.unshift({
-                    id: Date.now(),
-                    title: state.currentQuiz.title || scenarioTitle,
-                    date: new Date().toLocaleDateString('tr-TR'),
-                    questionCount: state.currentQuiz.questions.length,
-                    quizData: state.currentQuiz
-                });
-                localStorage.setItem('qc_archive', JSON.stringify(state.archive));
-                updateBadges();
-
-                log("Ajan 3 soruları başarıyla üretti ve arşive kaydedildi.");
+                log("Ajan 3 soruları başarıyla üretti.");
                 setAgentState(3, 'done');
 
                 // Ajan 4
@@ -601,6 +606,8 @@ Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin 
 
             if (!quiz || !quiz.questions) return;
 
+            let wrongQuestionsList = [];
+
             quiz.questions.forEach((q, idx) => {
                 const userAns = state.userAnswers[q.id];
                 const isCorrect = (q.options && q.options.length > 0) ? (userAns === q.correctAnswer) : (userAns && userAns.trim().length > 2);
@@ -608,30 +615,43 @@ Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin 
                 if (isCorrect) {
                     correctCount++;
                 } else {
-                    state.wrongLog.unshift({
+                    wrongQuestionsList.push({
                         question: q.question,
-                        correctAnswer: q.options ? q.options[q.correctAnswer] : q.correctAnswer,
-                        explanation: q.explanation,
-                        date: new Date().toLocaleDateString('tr-TR')
+                        correctAnswer: q.options ? q.options[q.correctAnswer] : (q.correctAnswer || 'Belirtilmemiş'),
+                        explanation: q.explanation
                     });
                 }
+
+                const correctDisplay = q.options ? q.options[q.correctAnswer] : (q.correctAnswer || 'Klasik / Açık Uçlu Kriter');
 
                 feedbackEl.innerHTML += `
                     <div class="glass" style="border-color: ${isCorrect ? 'rgba(16,185,129,0.3)' : 'rgba(244,63,94,0.3)'}; display: flex; flex-direction: column; gap: 8px;">
                         <div style="font-weight: 700; font-size: 12px; color: ${isCorrect ? '#34d399' : '#fb7185'};">Soru ${idx + 1}: ${isCorrect ? '✓ Doğru' : '✗ Yanlış'}</div>
                         <p style="font-weight: 700; color: #fff; font-size: 13px;">${q.question}</p>
                         <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
-                            <div><b style="color: #34d399;">Doğru Cevap:</b> ${q.options ? q.options[q.correctAnswer] : q.correctAnswer}</div>
+                            <div><b style="color: #34d399;">Doğru Cevap / Kriter:</b> ${correctDisplay}</div>
                             <div><b style="color: #60a5fa;">Açıklama:</b> ${q.explanation}</div>
                         </div>
                     </div>
                 `;
             });
 
-            localStorage.setItem('qc_wrong_log', JSON.stringify(state.wrongLog));
+            // Arşive Kaydet
+            const archiveItem = {
+                id: Date.now(),
+                title: quiz.title || "Deneme Sınavı",
+                date: new Date().toLocaleDateString('tr-TR'),
+                score: Math.round((correctCount / quiz.questions.length) * 100),
+                total: quiz.questions.length,
+                correct: correctCount,
+                wrongQuestions: wrongQuestionsList,
+                quizData: quiz
+            };
+            state.archive.unshift(archiveItem);
+            localStorage.setItem('qc_archive', JSON.stringify(state.archive));
             updateBadges();
 
-            const score = Math.round((correctCount / quiz.questions.length) * 100);
+            const score = archiveItem.score;
             document.getElementById('res-estimated-grade').innerText = score;
             document.getElementById('quiz-taking-panel').classList.add('hidden');
             document.getElementById('quiz-result-panel').classList.remove('hidden');
@@ -639,27 +659,70 @@ Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin 
         }
 
         function renderDashboard() {
-            document.getElementById('stat-total-quizzes').innerText = state.archive.length;
-            document.getElementById('stat-archive-count').innerText = state.archive.length;
-            document.getElementById('stat-wrong-count').innerText = state.wrongLog.length;
+            document.getElementById('dash-total-q').innerText = state.archive.length;
+            let totalWrongs = state.archive.reduce((acc, curr) => acc + (curr.wrongQuestions ? curr.wrongQuestions.length : 0), 0);
+            document.getElementById('dash-total-wrong').innerText = totalWrongs;
+
+            const card = document.getElementById('dashboard-last-quiz-card');
+            if (state.archive.length === 0) {
+                card.innerHTML = `<div style="color: #94a3b8; font-size: 12px;">Henüz çözülen bir sınav bulunmuyor. Sol menüden "Sınav Oluştur" diyerek başlayabilirsin!</div>`;
+                return;
+            }
+            const last = state.archive[0];
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="badge">${last.date}</span>
+                    <span style="font-weight: 800; color: ${last.score >= 70 ? '#34d399' : '#fb7185'}; font-size: 14px;">Not: ${last.score} Puan</span>
+                </div>
+                <h4 style="font-weight: 700; color: #fff; font-size: 15px;">${last.title}</h4>
+                <div style="display: flex; gap: 12px; margin-top: 4px;">
+                    <button onclick="loadArchivedQuiz(${0})" class="btn btn-primary" style="padding: 8px 16px; font-size: 11px;">Tekrar Çöz</button>
+                    ${last.wrongQuestions && last.wrongQuestions.length > 0 ? `<button onclick="recreateWrongQuiz(${0})" class="btn" style="background: rgba(244,63,94,0.2); color: #fb7185; padding: 8px 16px; font-size: 11px;">Hatalarla Yeni Sınav Ol</button>` : ''}
+                </div>
+            `;
         }
 
         function renderArchive() {
             const grid = document.getElementById('archive-grid');
             grid.innerHTML = '';
             if (state.archive.length === 0) {
-                grid.innerHTML = `<div style="font-size: 12px; color: #94a3b8; grid-column: span 2;">Henüz arşivde kayıtlı sınav bulunmuyor. Sınav oluşturduğunuzda burada listelenecektir.</div>`;
+                grid.innerHTML = `<div class="glass" style="font-size: 13px; color: #94a3b8; text-align: center;">Arşivde henüz kayıtlı sınav bulunmuyor.</div>`;
                 return;
             }
             state.archive.forEach((item, index) => {
+                let wrongsHTML = '';
+                if (item.wrongQuestions && item.wrongQuestions.length > 0) {
+                    wrongsHTML = `<div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="font-size: 12px; font-weight: 700; color: #fb7185;"><i class="fa-solid fa-triangle-exclamation"></i> Bu Sınavdaki Yanlış Yapılan Sorular (${item.wrongQuestions.length}):</div>`;
+                    item.wrongQuestions.forEach(w => {
+                        wrongsHTML += `
+                            <div style="background: rgba(244,63,94,0.05); border: 1px solid rgba(244,63,94,0.2); border-radius: 12px; padding: 12px; font-size: 12px; display: flex; flex-direction: column; gap: 4px;">
+                                <div style="font-weight: 700; color: #fff;">${w.question}</div>
+                                <div style="color: #34d399;"><b>Doğru Cevap:</b> ${w.correctAnswer}</div>
+                                <div style="color: #94a3b8;"><b>Açıklama:</b> ${w.explanation}</div>
+                            </div>
+                        `;
+                    });
+                    wrongsHTML += `</div>`;
+                } else {
+                    wrongsHTML = `<div style="margin-top: 8px; font-size: 12px; color: #34d399;"><i class="fa-solid fa-circle-check"></i> Bu sınavda hiç yanlışın yok! Tebrikler!</div>`;
+                }
+
                 grid.innerHTML += `
                     <div class="glass" style="display: flex; flex-direction: column; gap: 12px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
                             <span style="color: #60a5fa; font-weight: 700;">${item.date}</span>
-                            <span class="badge">${item.questionCount} Soru</span>
+                            <div style="display: flex; gap: 8px;">
+                                <span class="badge" style="background: rgba(52,211,153,0.15); color: #34d399;">Net: ${item.correct}/${item.total}</span>
+                                <span class="badge">Puan: ${item.score}</span>
+                            </div>
                         </div>
-                        <h4 style="font-weight: 800; color: #fff; font-size: 15px;">${item.title}</h4>
-                        <button onclick="loadArchivedQuiz(${index})" class="btn btn-primary" style="padding: 10px; font-size: 12px;">Sınavı Tekrar Çöz</button>
+                        <h4 style="font-weight: 800; color: #fff; font-size: 16px;">${item.title}</h4>
+                        ${wrongsHTML}
+                        <div style="display: flex; gap: 12px; margin-top: 8px;">
+                            <button onclick="loadArchivedQuiz(${index})" class="btn btn-primary" style="padding: 10px 16px; font-size: 12px;">Sınavı Tekrar Çöz</button>
+                            ${item.wrongQuestions && item.wrongQuestions.length > 0 ? `<button onclick="recreateWrongQuiz(${index})" class="btn" style="background: rgba(244,63,94,0.2); color: #fb7185; padding: 10px 16px; font-size: 12px;"><i class="fa-solid fa-rotate-right"></i> Yanlış Sorularla Tekrar Sınav Ol</button>` : ''}
+                        </div>
                     </div>
                 `;
             });
@@ -673,25 +736,26 @@ Yalnızca geçerli bir JSON objesi döndür, markdown veya başka hiçbir metin 
             renderQuiz(quiz, false);
         }
 
-        function renderWrongLog() {
-            const container = document.getElementById('wrong-log-container');
-            container.innerHTML = '';
-            if (state.wrongLog.length === 0) {
-                container.innerHTML = `<div style="font-size: 12px; color: #94a3b8;">Harika! Hata defterinizde kayıtlı yanlış soru bulunmuyor.</div>`;
-                return;
-            }
-            state.wrongLog.forEach((item) => {
-                container.innerHTML += `
-                    <div class="glass" style="border-color: rgba(244,63,94,0.3); display: flex; flex-direction: column; gap: 8px;">
-                        <div style="color: #fb7185; font-weight: 700; font-size: 12px;">Kayıt Tarihi: ${item.date}</div>
-                        <p style="font-weight: 700; color: #fff; font-size: 13px;">${item.question}</p>
-                        <div style="background: #020617; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
-                            <div><b style="color: #34d399;">Doğru Cevap:</b> ${item.correctAnswer}</div>
-                            <div><b style="color: #60a5fa;">Açıklama:</b> ${item.explanation}</div>
-                        </div>
-                    </div>
-                `;
-            });
+        function recreateWrongQuiz(index) {
+            const item = state.archive[index];
+            if (!item.wrongQuestions || item.wrongQuestions.length === 0) return;
+            
+            // Yanlış sorulardan yeni bir sınav üret
+            const newQuiz = {
+                title: `${item.title} - Hata Telafi Sınavı`,
+                questions: item.wrongQuestions.map((w, i) => ({
+                    id: i + 1,
+                    question: w.question,
+                    options: [],
+                    correctAnswer: w.correctAnswer,
+                    explanation: w.explanation,
+                    isBonus: false
+                }))
+            };
+            state.currentQuiz = newQuiz;
+            document.querySelectorAll('.view-section').forEach(v => v.classList.add('hidden'));
+            document.getElementById('view-create').classList.remove('hidden');
+            renderQuiz(newQuiz, false);
         }
     </script>
 </body>
