@@ -2,10 +2,21 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
+const basicAuth = require('express-basic-auth');
 require('dotenv').config();
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
+
+// --- ŞİFRE KORUMASI (Basic Auth) ---
+const siteUser = process.env.SITE_USER || 'admin';
+const sitePass = process.env.SITE_PASS || '123456';
+
+app.use(basicAuth({
+    users: { [siteUser]: sitePass },
+    challenge: true,
+    realm: 'QuizCraft Protection Zone'
+}));
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -94,7 +105,7 @@ app.post('/api/agent-groq', async (req, res) => {
     let lastError = null;
     for (const model of groqModels) {
         try {
-            const response = await fetchAPI('https://api.groq.com/openai/v1/chat/completions', {
+            const response = await fetchAPI('https://api.groq.com/openai/v1,chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
