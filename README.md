@@ -1,0 +1,2 @@
+# tamamdakankaaaanealakaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aga bak bana bakma bana hahahaha şşşşşşşşşşşşşşşşşşşşşş
