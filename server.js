@@ -8,7 +8,6 @@ require('dotenv').config();
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
-// --- ŞİFRE KORUMASI (Basic Auth) ---
 const siteUser = process.env.SITE_USER || 'admin';
 const sitePass = process.env.SITE_PASS || '123456';
 
@@ -23,7 +22,6 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
-const fetchAPI = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 // --- PDF PARSE PROXY ---
 app.post('/api/parse-pdf', upload.array('pdfs'), async (req, res) => {
@@ -47,13 +45,12 @@ app.post('/api/parse-pdf', upload.array('pdfs'), async (req, res) => {
 app.post('/api/agent1-summary', async (req, res) => {
     const { text } = req.body;
     const apiKey = process.env.GEMINI_API_KEY || 'AQ.Ab8RN6K0odcx_FADTp2zmR66O0LAus14At-k29d-hjoOVg-bfg';
-
     const modelsToTry = ['gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-pro'];
     let lastError = null;
 
     for (const model of modelsToTry) {
         try {
-            const response = await fetchAPI(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -80,13 +77,12 @@ app.post('/api/agent1-summary', async (req, res) => {
 app.post('/api/agent-groq', async (req, res) => {
     const { prompt } = req.body;
     const apiKey = process.env.GROQ_API_KEY || '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';
-
     const groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'llama3-70b-8192', 'mixtral-8x7b-32768'];
     let lastError = null;
 
     for (const model of groqModels) {
         try {
-            const response = await fetchAPI('https://api.groq.com/openai/v1/chat/completions', {
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
