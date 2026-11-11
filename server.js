@@ -1,8 +1,6 @@
 const express = require('express');
-const cors = require('cors');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
-const basicAuth = require('express-basic-auth');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -15,21 +13,17 @@ const upload = multer({
 });
 
 const PORT = process.env.PORT || 3000;
-const siteUser = process.env.SITE_USER || 'admin';
-const sitePass = process.env.SITE_PASS || '123456';
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
-const GROQ_KEY = process.env.GROQ_API_KEY;
+const clean = v => (v || '').trim().replace(/^["']|["']$/g, '');
+const GEMINI_KEY = clean(process.env.GEMINI_API_KEY);
+const GROQ_KEY = clean(process.env.GROQ_API_KEY);
 // Modeller .env ile değiştirilebilir; biri kapatılırsa sıradakine geçilir.
 const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.5-flash-lite,gemini-2.0-flash').split(',');
 const FAST_MODELS = (process.env.GROQ_FAST_MODELS || 'openai/gpt-oss-20b,llama-3.1-8b-instant').split(',');
 const BIG_MODELS = (process.env.GROQ_BIG_MODELS || 'openai/gpt-oss-120b,llama-3.3-70b-versatile').split(',');
 
-if (sitePass === '123456') console.warn('⚠️  SITE_PASS varsayılan değerde! .env dosyasında değiştirin.');
-
-app.use(basicAuth({ users: { [siteUser]: sitePass }, challenge: true, realm: 'QuizCraft AI Pro' }));
-app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+require('./auth')(app); // giriş sistemi: bundan sonraki tüm /api uçları oturum ister
 
 // ---------- Yardımcılar ----------
 async function timedFetch(url, opts, ms = 60000) {
@@ -75,12 +69,13 @@ async function callGroq(models, messages, { json = false, temperature = 0.4, eff
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_KEY}` },
         body: JSON.stringify(body)
       }, timeout);
+      if (r.status === 401) { const e = new Error('GROQ_API_KEY geçersiz. .env dosyasındaki Groq anahtarını kontrol et (gsk_ ile başlamalı, tırnak/boşluk olmamalı).'); e.fatal = true; throw e; }
       if (!r.ok) throw new Error(`${model}: HTTP ${r.status} ${(await r.text()).slice(0, 200)}`);
       const d = await r.json();
       const text = d.choices?.[0]?.message?.content?.trim();
       if (text) return { text, model };
       throw new Error(`${model}: boş yanıt`);
-    } catch (e) { lastErr = e; console.warn('Groq:', e.message); }
+    } catch (e) { lastErr = e; console.warn('Groq:', e.message); if (e.fatal) throw e; }
   }
   throw lastErr;
 }
@@ -245,7 +240,7 @@ app.post('/api/agent3-generator', async (req, res) => {
       ], { json: true, temperature: attempt === 1 ? 0.5 : 0.3, effort: p.effort, maxTokens: 12000 });
       const quiz = normalizeQuiz(extractJson(r.text), p);
       return res.json({ quiz, model: r.model, attempts: attempt });
-    } catch (e) { lastErr = e; console.warn(`Ajan3 deneme ${attempt}:`, e.message); }
+    } catch (e) { lastErr = e; console.warn(`Ajan3 deneme ${attempt}:`, e.message); if (e.fatal) break; }
   }
   res.status(500).json({ error: 'Sınav üretilemedi: ' + (lastErr?.message || 'bilinmeyen hata') });
 });
