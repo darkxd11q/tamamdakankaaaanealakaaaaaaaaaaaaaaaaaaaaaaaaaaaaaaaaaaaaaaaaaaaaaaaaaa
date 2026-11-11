@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuizCraft AI Pro</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<style>
+:root{--bg:#0d1220;--s1:#151c30;--s2:#1c2540;--ln:rgba(255,255,255,.08);--tx:#eef1f8;--mu:#8f9bb8;--am:#f0b45a;--tl:#4fd1b5;--ro:#f0708a;--bl:#6ea8fe;--vi:#a995f5}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;display:flex;overflow-x:hidden}
+h1,h2,h3,h4,.num{font-family:'Bricolage Grotesque',sans-serif;letter-spacing:-.01em}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--am);outline-offset:2px}
+aside{width:272px;background:var(--s1);border-right:1px solid var(--ln);display:flex;flex-direction:column;height:100vh;position:sticky;top:0;z-index:40;flex-shrink:0}
+.brand{padding:24px 22px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--ln)}
+.brand-i{width:42px;height:42px;border-radius:12px;background:var(--am);color:#1a1405;display:grid;place-items:center;font-size:18px;transition:transform .5s cubic-bezier(.34,1.56,.64,1)}
+.brand:hover .brand-i{transform:rotate(-12deg) scale(1.08)}
+nav{padding:14px;display:flex;flex-direction:column;gap:6px}
+.nav-btn{position:relative;overflow:hidden;width:100%;display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:12px;font-size:14px;font-weight:600;color:var(--mu);background:none;border:none;cursor:pointer;text-align:left;transition:color .25s,transform .25s}
+.nav-btn::before{content:"";position:absolute;inset:0;background:var(--s2);transform:scaleX(0);transform-origin:left;transition:transform .35s cubic-bezier(.22,1,.36,1);z-index:-1}
+.nav-btn::after{content:"";position:absolute;left:0;top:22%;bottom:22%;width:3px;border-radius:0 3px 3px 0;background:var(--am);transform:scaleY(0);transition:transform .3s}
+.nav-btn{z-index:0;isolation:isolate}
+.nav-btn i{width:20px;text-align:center;transition:transform .35s cubic-bezier(.34,1.56,.64,1),color .25s}
+.nav-btn span.lb{transition:transform .3s}
+.nav-btn:hover{color:var(--tx)}
+.nav-btn:hover::before{transform:scaleX(1)}
+.nav-btn:hover i{transform:translateY(-2px) rotate(-8deg) scale(1.18);color:var(--am)}
+.nav-btn:hover span.lb{transform:translateX(4px)}
+.nav-btn.active{color:var(--tx)}
+.nav-btn.active::before{transform:scaleX(1)}
+.nav-btn.active::after{transform:scaleY(1)}
+.nav-btn.active i{color:var(--am)}
+.side-foot{margin-top:auto;padding:16px;border-top:1px solid var(--ln);font-size:11px;color:var(--mu);display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mu)}.dot.ok{background:var(--tl);box-shadow:0 0 8px var(--tl)}.dot.bad{background:var(--ro)}
+main{flex:1;display:flex;flex-direction:column;height:100vh;overflow-y:auto;min-width:0}
+header{padding:20px 36px;border-bottom:1px solid var(--ln);background:rgba(13,18,32,.85);backdrop-filter:blur(12px);position:sticky;top:0;z-index:30}
+header h2{font-size:20px;font-weight:700}header p{font-size:12px;color:var(--mu);margin-top:2px}
+.view{padding:32px 36px;max-width:1140px;width:100%;margin:0 auto}
+.view.enter{animation:in .45s cubic-bezier(.16,1,.3,1)}
+@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.card{background:var(--s1);border:1px solid var(--ln);border-radius:18px;padding:22px}
+.card.lift{transition:transform .3s cubic-bezier(.22,1,.36,1),border-color .3s,box-shadow .3s}
+.card.lift:hover{transform:translateY(-4px);border-color:rgba(240,180,90,.45);box-shadow:0 14px 30px -14px rgba(0,0,0,.7)}
+.btn{padding:12px 20px;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;border:1px solid transparent;transition:transform .2s,background .2s,box-shadow .2s;display:inline-flex;align-items:center;justify-content:center;gap:8px;color:var(--tx);background:var(--s2)}
+.btn:hover{transform:translateY(-2px);background:#26325a}.btn:active{transform:scale(.97)}
+.btn-a{background:var(--am);color:#1a1405}.btn-a:hover{background:#f6c37b;box-shadow:0 10px 24px -10px var(--am)}
+.btn-r{background:rgba(240,112,138,.15);color:var(--ro)}.btn-r:hover{background:rgba(240,112,138,.28)}
+.btn:disabled{opacity:.5;pointer-events:none}
+.chip{font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;background:rgba(110,168,254,.14);color:var(--bl);display:inline-block}
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:12px;color:var(--tx);font-size:13px;font-family:inherit;transition:border-color .2s}
+input:focus,select:focus,textarea:focus{border-color:var(--am);outline:none}
+label.f{font-size:12px;font-weight:700;color:#c3cce2;display:block;margin-bottom:8px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:20px}.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stack>*+*{margin-top:20px}.hidden{display:none!important}
+.row{display:flex;align-items:center;gap:12px}.sp{justify-content:space-between}
+.muted{color:var(--mu);font-size:12px}
+.stat{padding:18px}.stat .num{font-size:30px;font-weight:800;line-height:1.1;margin-top:6px}
+.qa{display:flex;flex-direction:column;gap:8px;text-align:left;cursor:pointer;color:var(--tx);font-size:13px;font-weight:700;width:100%}
+.qa i{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:15px;transition:transform .4s cubic-bezier(.34,1.56,.64,1)}
+.qa:hover i{transform:rotate(-10deg) scale(1.15)}
+.qa small{font-weight:500;color:var(--mu);font-size:11px}
+.bars{display:flex;align-items:flex-end;gap:10px;height:110px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.bar div{width:100%;background:var(--s2);border-radius:6px 6px 2px 2px;min-height:4px;transition:background .2s,height .6s}
+.bar:hover div{background:var(--am)}.bar b{font-size:10px;color:var(--mu);font-weight:600}
+.item{padding:12px 14px;border-radius:12px;background:var(--bg);border:1px solid var(--ln);display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;transition:transform .25s,border-color .25s}
+.item:hover{transform:translateX(5px);border-color:var(--am)}
+.drop{border:2px dashed rgba(255,255,255,.16);border-radius:16px;padding:24px;text-align:center;position:relative;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;transition:border-color .25s,background .25s}
+.drop:hover,.drop.over{border-color:var(--am);background:rgba(240,180,90,.05)}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;height:100%}
+.tg{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--ln);border-radius:12px;cursor:pointer;background:var(--bg);transition:border-color .2s}
+.tg:hover{border-color:rgba(240,180,90,.5)}.tg b{font-size:12px;display:block}.tg small{font-size:10px;color:var(--mu)}
+.tg input{width:16px;height:16px;accent-color:var(--am)}
+.opt-btn{flex:1;padding:10px;border-radius:10px;border:1px solid var(--ln);background:var(--bg);color:#cbd5e1;font-weight:700;cursor:pointer;transition:all .2s}
+.opt-btn:hover{border-color:var(--am)}.opt-btn.sel{border-color:var(--am);background:rgba(240,180,90,.15);color:var(--am)}
+.ag{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.agc{background:var(--bg);border:1px solid var(--ln);border-radius:14px;padding:14px;opacity:.45;transition:all .3s}
+.agc.active{opacity:1;border-color:var(--am);animation:pulse 1.2s infinite}.agc.done{opacity:1;border-color:var(--tl)}.agc.err{opacity:1;border-color:var(--ro)}
+@keyframes pulse{50%{box-shadow:0 0 0 5px rgba(240,180,90,.12)}}
+.logs{background:var(--bg);border:1px solid var(--ln);border-radius:12px;padding:14px;font:11px/1.6 monospace;color:var(--mu);height:140px;overflow-y:auto}
+.q{display:flex;flex-direction:column;gap:12px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{display:flex;align-items:center;gap:12px;padding:13px;border-radius:12px;border:1px solid var(--ln);background:var(--bg);color:var(--tx);font-size:13px;text-align:left;cursor:pointer;transition:transform .2s,border-color .2s,background .2s}
+.opt:hover{transform:translateX(4px);border-color:var(--am)}
+.opt b{width:28px;height:28px;border-radius:8px;background:var(--s2);display:grid;place-items:center;font-size:11px;color:var(--mu);flex-shrink:0}
+.opt.on{border-color:var(--am);background:rgba(240,180,90,.12)}.opt.on b{background:var(--am);color:#1a1405}
+.timer{font:700 18px 'Bricolage Grotesque';padding:8px 14px;border-radius:10px;background:var(--bg);border:1px solid var(--ln)}.timer.low{color:var(--ro);border-color:var(--ro)}
+.ring{--p:0;width:104px;height:104px;border-radius:50%;background:conic-gradient(var(--am) calc(var(--p)*1%),var(--s2) 0);display:grid;place-items:center;flex-shrink:0}
+.ring div{width:82px;height:82px;border-radius:50%;background:var(--s1);display:grid;place-items:center;text-align:center;font-size:11px;color:var(--mu)}.ring b{display:block;font:800 22px 'Bricolage Grotesque';color:var(--tx)}
+#toast{position:fixed;bottom:24px;right:24px;z-index:99;display:flex;flex-direction:column;gap:8px}
+.t{background:var(--s2);border:1px solid var(--ln);border-left:3px solid var(--am);padding:12px 16px;border-radius:10px;font-size:13px;max-width:360px;animation:in .3s}
+.t.err{border-left-color:var(--ro)}
+@media(max-width:900px){aside{display:none}.g2,.g4,.ag,.opts{grid-template-columns:1fr}.view{padding:20px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{aside,header,.noprint,#toast{display:none!important}body{background:#fff;color:#000}.card{border-color:#999;background:#fff;color:#000;break-inside:avoid}.opt{border-color:#999;color:#000}}
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand"><div class="brand-i"><i class="fa-solid fa-brain"></i></div><div><h1 style="font-size:18px">QuizCraft AI Pro</h1><p class="muted" style="font-size:11px">Akıllı sınav hazırlama</p></div></div>
+  <nav>
+    <button class="nav-btn active" id="nav-dashboard" onclick="switchTab('dashboard')"><i class="fa-solid fa-house"></i><span class="lb">Ana Panel</span></button>
+    <button class="nav-btn" id="nav-create" onclick="switchTab('create')"><i class="fa-solid fa-wand-magic-sparkles"></i><span class="lb">Sınav Oluştur</span></button>
+    <button class="nav-btn" id="nav-archive" onclick="switchTab('archive')"><i class="fa-solid fa-box-archive"></i><span class="lb">Arşiv ve Analiz</span><span id="archive-badge" class="chip" style="margin-left:auto">0</span></button>
+    <button class="nav-btn" id="nav-mistakes" onclick="switchTab('mistakes')"><i class="fa-solid fa-book-bookmark"></i><span class="lb">Hata Defteri</span><span id="mistake-badge" class="chip" style="margin-left:auto;background:rgba(240,112,138,.15);color:var(--ro)">0</span></button>
+  </nav>
+  <div class="side-foot"><span class="dot" id="ai-dot"></span><span id="ai-status">AI durumu kontrol ediliyor…</span></div>
+</aside>
+<main>
+<header><h2 id="header-title">Ana Panel</h2><p id="header-subtitle"></p></header>
+
+<!-- DASHBOARD -->
+<section id="view-dashboard" class="view stack">
+  <div class="card row sp" style="padding:28px;flex-wrap:wrap">
+    <div class="row" style="gap:22px">
+      <div class="ring" id="goal-ring"><div><span><b id="goal-num">0</b>/<span id="goal-max">20</span></span>soru</div></div>
+      <div><h3 style="font-size:22px" id="greet">Merhaba</h3><p class="muted" style="margin:6px 0 12px;max-width:420px" id="goal-text"></p>
+      <div class="row"><span class="chip" style="background:rgba(240,180,90,.15);color:var(--am)"><i class="fa-solid fa-fire"></i> <span id="streak">0</span> günlük seri</span><button class="btn" style="padding:5px 10px;font-size:11px" onclick="setGoal()">Hedefi değiştir</button></div></div>
+    </div>
+    <button class="btn btn-a" style="padding:16px 28px;font-size:14px" onclick="switchTab('create')"><i class="fa-solid fa-plus"></i> Yeni sınav oluştur</button>
+  </div>
+  <div class="g4" id="stats"></div>
+  <div class="g4" id="quick"></div>
+  <div class="g2">
+    <div class="card"><div class="row sp" style="margin-bottom:16px"><h3 style="font-size:15px">Son 7 gün</h3><span class="muted">çözülen soru</span></div><div class="bars" id="week"></div></div>
+    <div class="card"><div class="row sp" style="margin-bottom:14px"><h3 style="font-size:15px">Son sınavlar</h3><button class="btn" style="padding:5px 10px;font-size:11px" onclick="switchTab('archive')">Tümü</button></div><div class="stack" style="display:flex;flex-direction:column;gap:8px" id="recent"></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="row sp"><h3 style="font-size:15px"><i class="fa-solid fa-hourglass-half" style="color:var(--tl)"></i> Odak zamanlayıcı</h3><div class="row" style="gap:6px"><button class="opt-btn" style="padding:4px 10px" id="pm-focus" onclick="pomoMode(25)">25 dk</button><button class="opt-btn" style="padding:4px 10px" id="pm-break" onclick="pomoMode(5)">5 dk</button></div></div>
+      <div class="num" id="pomo" style="font-size:52px;font-weight:800;margin:14px 0">25:00</div>
+      <div class="row"><button class="btn btn-a" id="pomo-go" onclick="pomoToggle()">Başlat</button><button class="btn" onclick="pomoMode(pomo.mode)">Sıfırla</button></div></div>
+    <div class="card"><h3 style="font-size:15px;margin-bottom:12px"><i class="fa-solid fa-lightbulb" style="color:var(--am)"></i> Günün çalışma önerisi</h3><p id="tip" style="font-size:14px;line-height:1.7;color:#c3cce2"></p>
+      <div class="row" style="margin-top:18px"><button class="btn" onclick="exportData()"><i class="fa-solid fa-download"></i> Verileri yedekle</button></div></div>
+  </div>
+</section>
+
+<!-- CREATE -->
+<section id="view-create" class="view hidden">
+  <div id="creation-form" class="stack">
+    <div class="card stack">
+      <div><h3 style="font-size:16px">Çalışma materyali</h3><p class="muted">PDF yükle veya notlarını yapıştır. İkisini birlikte de kullanabilirsin.</p></div>
+      <div class="g2">
+        <div><div class="row sp" style="margin-bottom:8px"><span class="label f" style="margin:0">PDF dosyaları</span><span id="pdf-count" class="chip">0 PDF</span></div>
+          <div class="drop" id="drop"><input type="file" id="pdf-in" multiple accept="application/pdf"><i class="fa-solid fa-folder-plus" style="font-size:22px;color:var(--am)"></i><b style="font-size:13px">PDF’leri sürükle veya seç</b><span class="muted">En fazla 10 dosya, her biri 25 MB</span></div>
+          <div id="pdf-list" style="display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:130px;overflow-y:auto"></div></div>
+        <div style="display:flex;flex-direction:column"><div class="row sp" style="margin-bottom:8px"><label class="f" for="notes" style="margin:0">Notların</label><button class="btn" style="padding:4px 10px;font-size:11px" onclick="sample()">Örnek not</button></div>
+          <textarea id="notes" rows="8" placeholder="Ders notlarını buraya yapıştır…" style="resize:none;flex:1"></textarea></div>
+      </div>
+    </div>
+    <div class="card stack">
+      <div class="g4">
+        <div><label class="f">Soru formatı</label><select id="qtype" onchange="toggleOpt()"><option value="mc">Çoktan seçmeli</option><option value="open">Açık uçlu</option></select></div>
+        <div id="optbox"><label class="f">Şık sayısı</label><div class="row" style="gap:4px"><button class="opt-btn" data-v="2">2</button><button class="opt-btn" data-v="3">3</button><button class="opt-btn sel" data-v="4">4</button><button class="opt-btn" data-v="5">5</button></div></div>
+        <div><label class="f">Zorluk</label><select id="diff"><option>Kolay</option><option selected>Orta</option><option>Zor</option><option value="LGS / YKS seviyesi">LGS / YKS seviyesi</option></select></div>
+        <div><label class="f">Yapay zekâ düşünme süresi</label><select id="budget"><option value="10">Hızlı (10 sn)</option><option value="30" selected>Dengeli (30 sn)</option><option value="60">Derin (60 sn)</option></select></div>
+      </div>
+      <div class="g4">
+        <label class="tg"><span><b style="color:var(--am)">+1 bonus soru</b><small>+15 puan</small></span><input type="checkbox" id="bonus" checked></label>
+        <label class="tg"><span><b style="color:var(--bl)">Tablo / şema</b><small>Görsel temelli soru</small></span><input type="checkbox" id="visual" checked></label>
+        <label class="tg"><span><b style="color:var(--tl)">Karışık sıra</b><small>Soruları karıştır</small></span><input type="checkbox" id="shuf"></label>
+        <label class="tg"><span><b style="color:var(--vi)">Sanal rakip</b><small>Skor karşılaştırma</small></span><input type="checkbox" id="duel" checked></label>
+      </div>
+      <div class="g2">
+        <div><div class="row sp"><label class="f">Soru sayısı</label><b id="qc-val" style="color:var(--am);font-size:12px">6 soru</b></div><input type="range" id="qcount" min="3" max="15" value="6" style="padding:0;accent-color:var(--am)" oninput="qc.textContent=this.value+' soru'"></div>
+        <div><label class="f">Çözme süresi</label><select id="timer"><option value="0">Süresiz</option><option value="5">5 dakika</option><option value="10" selected>10 dakika</option><option value="20">20 dakika</option><option value="30">30 dakika</option></select></div>
+      </div>
+    </div>
+    <div class="row" style="justify-content:flex-end"><button class="btn btn-a" id="start" style="padding:16px 32px;font-size:14px" onclick="startPipeline()"><i class="fa-solid fa-microchip"></i> Sınavı hazırla</button></div>
+  </div>
+
+  <div id="pipeline" class="card hidden stack">
+    <div><h3 style="font-size:16px">Ajanlar çalışıyor</h3><p class="muted">Belge okunuyor, konular çıkarılıyor, sorular üretilip doğrulanıyor.</p></div>
+    <div class="ag">
+      <div class="agc" id="ag1"><b style="font-size:12px;color:var(--bl)">Ajan 1 · Belge analisti</b><div class="muted">Gemini</div></div>
+      <div class="agc" id="ag2"><b style="font-size:12px;color:var(--vi)">Ajan 2 · Konu haritası</b><div class="muted">Groq hızlı model</div></div>
+      <div class="agc" id="ag3"><b style="font-size:12px;color:var(--tl)">Ajan 3 · Soru üretici</b><div class="muted">Groq 120B</div></div>
+      <div class="agc" id="ag4"><b style="font-size:12px;color:var(--am)">Ajan 4 · Denetçi</b><div class="muted">Cevap anahtarı kontrolü</div></div>
+    </div>
+    <div class="logs" id="logs"></div>
+  </div>
+
+  <div id="taking" class="hidden stack">
+    <div class="card row sp" style="flex-wrap:wrap">
+      <div><span class="chip" id="q-mode">Sınav</span><h3 id="q-title" style="font-size:20px;margin-top:6px"></h3><p class="muted" id="q-prog"></p></div>
+      <div class="row noprint"><span id="rival" class="chip hidden" style="background:rgba(169,149,245,.15);color:var(--vi)"><i class="fa-solid fa-robot"></i> Rakip hazır</span><span class="timer hidden" id="q-timer">00:00</span><button class="btn" onclick="window.print()"><i class="fa-solid fa-print"></i> Yazdır</button></div>
+    </div>
+    <div id="q-list" class="stack"></div>
+    <div class="row noprint" style="justify-content:flex-end"><button class="btn btn-a" id="finish" style="padding:16px 32px" onclick="finishQuiz()"><i class="fa-solid fa-paper-plane"></i> Sınavı bitir</button></div>
+  </div>
+
+  <div id="result" class="hidden stack">
+    <div class="card row sp" style="flex-wrap:wrap"><div><span class="chip">Karne</span><h3 style="font-size:20px;margin-top:6px" id="r-title"></h3><p class="muted" id="r-sub"></p></div>
+      <div class="row"><div id="r-rival" class="muted"></div><div style="text-align:center;padding:10px 22px;border-radius:14px;background:var(--bg);border:1px solid var(--ln)"><div class="muted">Tahmini not</div><div class="num" id="r-grade" style="font-size:34px;font-weight:800;color:var(--am)">0</div></div></div></div>
+    <div id="r-list" class="stack"></div>
+    <div class="row noprint" style="justify-content:flex-end"><button class="btn" onclick="switchTab('archive')">Arşive git</button><button class="btn btn-a" onclick="switchTab('create')">Yeni sınav</button></div>
+  </div>
+</section>
+
+<!-- ARCHIVE -->
+<section id="view-archive" class="view hidden stack"><div id="archive-grid" class="stack"></div></section>
+<!-- MISTAKES -->
+<section id="view-mistakes" class="view hidden stack">
+  <div class="card row sp" style="flex-wrap:wrap"><div><h3 style="font-size:16px">Hata defteri</h3><p class="muted">Yanlış yaptığın tüm sorular burada toplanır.</p></div><div class="row"><button class="btn btn-a" onclick="mistakeQuiz()"><i class="fa-solid fa-rotate-right"></i> Hatalardan sınav yap</button><button class="btn btn-r" onclick="clearMistakes()">Defteri temizle</button></div></div>
+  <div id="mistake-list" class="stack"></div>
+</section>
+</main>
+<div id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
+const state={pdfs:[],quiz:null,answers:{},archive:load('qc_archive',[]),cfg:null,timerId:null,finishing:false,summary:''};
+let optCount=4;
+const day=d=>new Date(d).toLocaleDateString('sv');
+const toast=(m,err)=>{const t=document.createElement('div');t.className='t'+(err?' err':'');t.textContent=m;$('toast').appendChild(t);setTimeout(()=>t.remove(),5000)};
+async function api(path,body){
+  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||d.error)throw new Error(d.error||('Sunucu hatası '+r.status));
+  return d;
+}
+const save=()=>{localStorage.setItem('qc_archive',JSON.stringify(state.archive));badges()};
+
+/* ---- Gezinme ---- */
+const TITLES={dashboard:['Ana Panel','Bugünkü ilerlemen ve hızlı işlemler'],create:['Sınav Oluştur','Materyalini ekle, ayarları seç, sınavın hazırlansın'],archive:['Arşiv ve Analiz','Çözdüğün sınavlar ve sonuçları'],mistakes:['Hata Defteri','Yanlış yaptığın soruları tekrar et']};
+function switchTab(t,keep){
+  clearInterval(state.timerId);
+  document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const v=$('view-'+t);v.classList.remove('hidden');v.classList.remove('enter');void v.offsetWidth;v.classList.add('enter');
+  $('nav-'+t)?.classList.add('active');
+  $('header-title').textContent=TITLES[t][0];$('header-subtitle').textContent=TITLES[t][1];
+  if(t==='create'&&!keep)panel('creation-form');
+  if(t==='dashboard')renderDash();if(t==='archive')renderArchive();if(t==='mistakes')renderMistakes();
+}
+function panel(id){['creation-form','pipeline','taking','result'].forEach(p=>$(p).classList.toggle('hidden',p!==id));$('start').disabled=false}
+function badges(){$('archive-badge').textContent=state.archive.length;$('mistake-badge').textContent=allMistakes().length}
+
+/* ---- Form ---- */
+document.querySelectorAll('.opt-btn[data-v]').forEach(b=>b.onclick=()=>{optCount=+b.dataset.v;document.querySelectorAll('.opt-btn[data-v]').forEach(x=>x.classList.toggle('sel',x===b))});
+function toggleOpt(){const o=$('qtype').value==='open';$('optbox').style.opacity=o?.3:1;$('optbox').style.pointerEvents=o?'none':'auto'}
+function sample(){$('notes').value="İnkılap Tarihi notları:\n- Trablusgarp Savaşı (1911-1912): İtalya'nın Osmanlı'ya saldırısı; Mustafa Kemal ve Enver Bey direnişte görev aldı. Uşi Antlaşması ile sona erdi.\n- Balkan Savaşları (1912-1913): Balkan devletleri Osmanlı'ya karşı birleşti; Osmanlı Rumeli'deki topraklarının büyük kısmını kaybetti. Edirne Mehmetçik'in çabasıyla geri alındı.\n- I. Dünya Savaşı: Osmanlı, Almanya yanında savaşa girdi. Çanakkale Cephesi'nde 1915'te Mustafa Kemal Anafartalar'da büyük başarı kazandı. Kafkas, Irak, Sina-Filistin cepheleri açıldı.\n- Mondros Ateşkes Antlaşması (30 Ekim 1918): Osmanlı'nın savaştan çekilmesini sağladı, işgallerin yolunu açtı."}
+function renderPdfs(){
+  $('pdf-count').textContent=state.pdfs.length+' PDF';
+  $('pdf-list').innerHTML=state.pdfs.map((f,i)=>`<div class="item" style="cursor:default"><span style="font-size:12px"><i class="fa-solid fa-file-pdf" style="color:var(--ro)"></i> ${esc(f.name)}</span><button class="btn" style="padding:3px 9px" onclick="state.pdfs.splice(${i},1);renderPdfs()" aria-label="Kaldır">×</button></div>`).join('');
+}
+function addFiles(fs){Array.from(fs).filter(f=>f.type==='application/pdf'&&!state.pdfs.some(p=>p.name===f.name&&p.size===f.size)).forEach(f=>state.pdfs.push(f));renderPdfs()}
+$('pdf-in').onchange=e=>{addFiles(e.target.files);e.target.value=''};
+['dragenter','dragover'].forEach(ev=>$('drop').addEventListener(ev,()=>$('drop').classList.add('over')));
+['dragleave','drop'].forEach(ev=>$('drop').addEventListener(ev,()=>$('drop').classList.remove('over')));
+
+/* ---- Ajan hattı ---- */
+const agent=(n,s)=>{const c=$('ag'+n);c.classList.remove('active','done','err');if(s)c.classList.add(s)};
+async function startPipeline(){
+  if(state.busy)return;
+  const cfg={count:+$('qcount').value,type:$('qtype').value,optionCount:optCount,difficulty:$('diff').value,budget:$('budget').value,bonus:$('bonus').checked,visual:$('visual').checked,shuf:$('shuf').checked,duel:$('duel').checked,timer:+$('timer').value};
+  const notes=$('notes').value.trim();
+  if(!notes&&!state.pdfs.length)return toast('Önce bir PDF yükle veya not yaz.',1);
+  state.busy=true;$('start').disabled=true;panel('pipeline');[1,2,3,4].forEach(n=>agent(n));$('logs').innerHTML='';
+  const log=m=>{$('logs').insertAdjacentHTML('beforeend',`<div>› ${esc(m)}</div>`);$('logs').scrollTop=1e6};
+  let step=0;
+  try{
+    let text=notes;
+    if(state.pdfs.length){
+      log('PDF dosyaları okunuyor…');
+      const fd=new FormData();state.pdfs.forEach(f=>fd.append('pdfs',f));
+      const r=await fetch('/api/parse-pdf',{method:'POST',body:fd});const d=await r.json();
+      if(!r.ok)throw new Error(d.error||'PDF okunamadı');
+      (d.warnings||[]).forEach(w=>{log('Uyarı: '+w);toast(w,1)});
+      text+='\n\n'+d.text;
+    }
+    if(text.replace(/---.*---/g,'').trim().length<30)throw new Error('Materyal çok kısa veya okunamadı. Daha fazla metin ekle.');
+    step=1;agent(1,'active');log('Ajan 1 belgenin tamamını analiz ediyor…');
+    const a1=await api('/api/agent1-analyst',{text});
+    state.summary=a1.result;log(a1.warning?'Gemini yanıt vermedi, ham metin kullanılıyor.':'Analiz tamamlandı ('+a1.model+').');agent(1,'done');
+    step=2;agent(2,'active');log('Ajan 2 konu haritasını çıkarıyor…');
+    const a2=await api('/api/agent2-scenario',{summary:a1.result});
+    log(`Başlık: "${a2.title}"${a2.topics.length?' · '+a2.topics.length+' konu':''}`);agent(2,'done');
+    step=3;agent(3,'active');log(`Ajan 3 ${cfg.count} soru üretiyor (${cfg.difficulty})…`);
+    const a3=await api('/api/agent3-generator',{summary:a1.result,title:a2.title,topics:a2.topics,count:cfg.count,type:cfg.type,optionCount:cfg.optionCount,difficulty:cfg.difficulty,bonus:cfg.bonus,visual:cfg.visual,budget:cfg.budget});
+    log(`Sorular hazır (${a3.model}${a3.attempts>1?', '+a3.attempts+'. denemede':''}).`);agent(3,'done');
+    let quiz=a3.quiz;
+    step=4;agent(4,'active');log('Ajan 4 cevap anahtarını denetliyor…');
+    try{const a4=await api('/api/agent4-evaluator',{mode:'verify',quiz,summary:a1.result});quiz=a4.quiz;log(a4.fixed?`${a4.fixed} cevap anahtarı düzeltildi.`:'Cevap anahtarı doğrulandı.');agent(4,'done')}
+    catch(e){log('Denetim atlandı: '+e.message);agent(4,'done')}
+    if(cfg.shuf){quiz.questions.sort(()=>Math.random()-.5);}
+    setTimeout(()=>openQuiz(quiz,cfg),600);
+  }catch(e){
+    if(step)agent(step,'err');log('HATA: '+e.message);toast(e.message,1);
+    setTimeout(()=>panel('creation-form'),2500);
+  }finally{state.busy=false}
+}
+
+/* ---- Sınav ---- */
+function openQuiz(quiz,cfg={}){
+  state.quiz=quiz;state.cfg=cfg;state.answers={};state.finishing=false;
+  switchTab('create',true);panel('taking');
+  $('q-title').textContent=quiz.title;$('q-mode').textContent=cfg.review?'Tekrar':'Sınav';
+  $('rival').classList.toggle('hidden',!cfg.duel);
+  $('finish').disabled=false;
+  $('q-list').innerHTML=quiz.questions.map((q,i)=>`<div class="card q" style="${q.isBonus?'border-color:rgba(240,180,90,.5)':''}">
+    <span class="chip" style="width:fit-content;${q.isBonus?'background:rgba(240,180,90,.18);color:var(--am)':''}">${q.isBonus?'Bonus soru (+15 puan)':'Soru '+(i+1)}</span>
+    <p style="font-weight:700;font-size:15px;line-height:1.6;white-space:pre-line">${esc(q.question)}</p>
+    ${q.options?.length?`<div class="opts">${q.options.map((o,j)=>`<button class="opt" data-q="${q.id}" data-o="${j}" onclick="pick(${q.id},${j})"><b>${'ABCDE'[j]}</b><span>${esc(o)}</span></button>`).join('')}</div>`
+    :`<textarea rows="3" placeholder="Cevabını yaz…" oninput="state.answers[${q.id}]=this.value;prog()"></textarea>`}</div>`).join('');
+  prog();
+  clearInterval(state.timerId);const tm=$('q-timer');
+  if(cfg.timer>0){
+    const end=Date.now()+cfg.timer*60000;tm.classList.remove('hidden','low');
+    const tick=()=>{const s=Math.max(0,Math.round((end-Date.now())/1000));tm.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');tm.classList.toggle('low',s<60);if(s<=0){clearInterval(state.timerId);toast('Süre doldu, sınav teslim ediliyor.');finishQuiz()}};
+    tick();state.timerId=setInterval(tick,1000);
+  }else tm.classList.add('hidden');
+}
+function prog(){const n=state.quiz.questions.filter(q=>{const a=state.answers[q.id];return a!==undefined&&a!==''}).length;$('q-prog').textContent=`${n}/${state.quiz.questions.length} soru yanıtlandı`}
+function pick(q,o){state.answers[q]=o;document.querySelectorAll(`.opt[data-q="${q}"]`).forEach(b=>b.classList.toggle('on',+b.dataset.o===o));prog()}
+function kwCheck(u,e){if(!u||!u.trim())return 0;const w=String(e).toLowerCase().split(/\s+/).filter(x=>x.length>3);if(!w.length)return 1;const m=w.filter(x=>u.toLowerCase().includes(x.slice(0,Math.max(4,x.length-2)))).length;return m/w.length>=.5?1:m/w.length>=.3?.5:0}
+
+async function finishQuiz(){
+  if(state.finishing||!state.quiz)return;state.finishing=true;clearInterval(state.timerId);$('finish').disabled=true;
+  const quiz=state.quiz,A=state.answers;
+  const scores={},fb={};
+  const open=quiz.questions.filter(q=>!q.options?.length);
+  quiz.questions.filter(q=>q.options?.length).forEach(q=>scores[q.id]=A[q.id]===q.correctAnswer?1:0);
+  if(open.length){
+    toast('Açık uçlu cevapların değerlendiriliyor…');
+    const items=open.map(q=>({id:q.id,question:q.question,expected:q.correctAnswer,answer:A[q.id]||''}));
+    try{(await api('/api/agent4-evaluator',{mode:'grade',items})).results.forEach(r=>{scores[r.id]=[0,.5,1].includes(+r.score)?+r.score:(+r.score>=.75?1:+r.score>=.25?.5:0);fb[r.id]=r.feedback})}
+    catch(e){toast('AI notlama yapılamadı, anahtar kelime kontrolü kullanıldı.',1)}
+    open.forEach(q=>{if(scores[q.id]===undefined)scores[q.id]=kwCheck(A[q.id],q.correctAnswer)});
+  }
+  const normal=quiz.questions.filter(q=>!q.isBonus),bonus=quiz.questions.find(q=>q.isBonus);
+  let pts=normal.reduce((s,q)=>s+(scores[q.id]||0),0)/(normal.length||1)*100;
+  if(bonus)pts+=(scores[bonus.id]||0)*15;
+  const grade=Math.round(pts);
+  const correct=quiz.questions.reduce((s,q)=>s+(scores[q.id]===1?1:0),0);
+  const wrong=quiz.questions.filter(q=>scores[q.id]!==1).map(q=>({...q,userAnswer:A[q.id]??null}));
+  const item={id:Date.now(),ts:Date.now(),title:quiz.title,score:grade,total:quiz.questions.length,correct,wrong,quizData:quiz};
+  state.archive.unshift(item);save();
+  $('r-title').textContent=quiz.title;$('r-sub').textContent=`${correct}/${quiz.questions.length} tam doğru`;$('r-grade').textContent=grade;
+  $('r-rival').innerHTML='';
+  if(state.cfg?.duel){const base={Kolay:78,Orta:68,Zor:58}[state.cfg.difficulty]||52;const rv=Math.min(100,Math.max(20,Math.round(base+Math.random()*20-10)));$('r-rival').innerHTML=`<i class="fa-solid fa-robot" style="color:var(--vi)"></i> Rakip: <b>${rv}</b> · ${grade>rv?'<span style="color:var(--tl)">Kazandın</span>':grade===rv?'Berabere':'<span style="color:var(--ro)">Rakip önde</span>'}`}
+  $('r-list').innerHTML=quiz.questions.map((q,i)=>{const s=scores[q.id],mc=q.options?.length,ua=A[q.id];
+    const col=s===1?'var(--tl)':s===.5?'var(--am)':'var(--ro)',lab=s===1?'Doğru':s===.5?'Kısmen doğru':'Yanlış';
+    return `<div class="card q" style="border-color:${col}"><b style="color:${col};font-size:12px">Soru ${i+1}: ${lab}</b><p style="font-weight:700;line-height:1.6;white-space:pre-line">${esc(q.question)}</p>
+    <div style="background:var(--bg);border-radius:12px;padding:12px;font-size:12px;line-height:1.7"><div><b style="color:var(--bl)">Cevabın:</b> ${ua===undefined||ua===''?'Boş bıraktın':esc(mc?q.options[ua]:ua)}</div><div><b style="color:var(--tl)">Doğru cevap:</b> ${esc(mc?q.options[q.correctAnswer]:q.correctAnswer)}</div>${fb[q.id]?`<div><b style="color:var(--am)">Geri bildirim:</b> ${esc(fb[q.id])}</div>`:''}<div><b style="color:var(--vi)">Açıklama:</b> ${esc(q.explanation)}</div></div></div>`}).join('');
+  panel('result');badges();
+  if(grade>=70&&window.confetti)confetti({particleCount:120,spread:70,origin:{y:.3}});
+}
+
+/* ---- Hata defteri ---- */
+function allMistakes(){const seen=new Set(),out=[];state.archive.forEach(a=>(a.wrong||[]).forEach(w=>{const k=w.question;if(!seen.has(k)){seen.add(k);out.push({...w,from:a.title})}}));return out}
+function renderMistakes(){const m=allMistakes();$('mistake-list').innerHTML=m.length?m.map(w=>`<div class="card q"><span class="chip" style="width:fit-content;background:rgba(240,112,138,.15);color:var(--ro)">${esc(w.from)}</span><p style="font-weight:700;line-height:1.6">${esc(w.question)}</p><div class="muted" style="line-height:1.7"><b style="color:var(--tl)">Doğru:</b> ${esc(w.options?.length?w.options[w.correctAnswer]:w.correctAnswer)}<br>${esc(w.explanation)}</div></div>`).join(''):`<div class="card muted">Hata defterin boş. Sınav çözdükçe yanlışların burada toplanır.</div>`}
+function mistakeQuiz(list){
+  const m=(list||allMistakes()).sort(()=>Math.random()-.5).slice(0,15);
+  if(!m.length)return toast('Hata defterin boş, tekrar edilecek soru yok.');
+  openQuiz({title:'Hata telafi sınavı',questions:m.map((q,i)=>({question:q.question,options:q.options||[],correctAnswer:q.correctAnswer,explanation:q.explanation,isBonus:false,id:i+1}))},{review:true,timer:0});
+}
+function clearMistakes(){if(confirm('Tüm sınavlardaki hata kayıtları silinsin mi? Sınav geçmişin korunur.')){state.archive.forEach(a=>a.wrong=[]);save();renderMistakes()}}
+
+/* ---- Arşiv ---- */
+function renderArchive(){
+  $('archive-grid').innerHTML=state.archive.length?state.archive.map((a,i)=>`<div class="card lift q"><div class="row sp"><span class="muted">${new Date(a.ts||a.id).toLocaleDateString('tr-TR')}</span><div class="row" style="gap:6px"><span class="chip" style="background:rgba(79,209,181,.15);color:var(--tl)">${a.correct}/${a.total} doğru</span><span class="chip">Not ${a.score}</span></div></div>
+  <h4 style="font-size:17px">${esc(a.title)}</h4>${(a.wrong||[]).length?`<div class="muted" style="color:var(--ro)"><i class="fa-solid fa-triangle-exclamation"></i> ${a.wrong.length} yanlış soru</div>`:`<div class="muted" style="color:var(--tl)"><i class="fa-solid fa-circle-check"></i> Hiç yanlışın yok</div>`}
+  <div class="row"><button class="btn btn-a" onclick="openQuiz(state.archive[${i}].quizData,{timer:0,review:true})">Tekrar çöz</button>${(a.wrong||[]).length?`<button class="btn btn-r" onclick="mistakeQuiz(state.archive[${i}].wrong.map(w=>({...w})))">Yanlışlarla sınav yap</button>`:''}<button class="btn" onclick="delArchive(${i})" aria-label="Sil"><i class="fa-solid fa-trash"></i></button></div></div>`).join(''):`<div class="card muted">Arşivde henüz sınav yok. Bir sınav çözdüğünde burada görünür.</div>`}
+function delArchive(i){if(confirm('Bu sınav arşivden silinsin mi?')){state.archive.splice(i,1);save();renderArchive()}}
+
+/* ---- Ana panel ---- */
+const TIPS=['Bir konuyu okuduktan sonra kitabı kapat ve hatırladıklarını yaz; sonra sınavla kontrol et.','Yanlış yaptığın soruları 2 gün sonra tekrar çöz; unutma eğrisini aşmanın en kısa yolu.','25 dakika odaklan, 5 dakika dinlen. Dört turdan sonra uzun mola ver.','Açık uçlu sorular, çoktan seçmeliden daha derin öğrenme sağlar. Arada dene.','Zor konuyu günün en enerjik saatine koy, kolay tekrarları yorgun saate bırak.','Sınavı süreli çözmek, gerçek sınav stresine alışmanı sağlar.'];
+function setGoal(){const g=parseInt(prompt('Günlük soru hedefin kaç olsun?',localStorage.getItem('qc_goal')||20));if(g>0){localStorage.setItem('qc_goal',g);renderDash()}}
+function renderDash(){
+  const A=state.archive,h=new Date().getHours(),goal=+localStorage.getItem('qc_goal')||20,today=day(Date.now());
+  $('greet').textContent=(h<6?'İyi geceler':h<12?'Günaydın':h<18?'İyi günler':'İyi akşamlar')+'!';
+  const todayQ=A.filter(a=>day(a.ts||a.id)===today).reduce((s,a)=>s+a.total,0);
+  $('goal-num').textContent=todayQ;$('goal-max').textContent=goal;$('goal-ring').style.setProperty('--p',Math.min(100,todayQ/goal*100));
+  $('goal-text').textContent=todayQ>=goal?'Bugünkü hedefini tamamladın. Harika iş!':`Hedefe ${goal-todayQ} soru kaldı. Bir sınav hazırlayıp başla.`;
+  const days=new Set(A.map(a=>day(a.ts||a.id)));let st=0,d=new Date();if(!days.has(day(d)))d.setDate(d.getDate()-1);
+  while(days.has(day(d))){st++;d.setDate(d.getDate()-1)}$('streak').textContent=st;
+  const tq=A.reduce((s,a)=>s+a.total,0),tc=A.reduce((s,a)=>s+a.correct,0);
+  const S=[['Çözülen sınav',A.length,'var(--bl)'],['Ortalama not',A.length?Math.round(A.reduce((s,a)=>s+a.score,0)/A.length):'–','var(--am)'],['En yüksek not',A.length?Math.max(...A.map(a=>a.score)):'–','var(--tl)'],['Doğruluk',tq?Math.round(tc/tq*100)+'%':'–','var(--vi)']];
+  $('stats').innerHTML=S.map(s=>`<div class="card stat lift"><div class="muted">${s[0]}</div><div class="num" style="color:${s[2]}">${s[1]}</div></div>`).join('');
+  const M=allMistakes().length,last=A[0];
+  const Q=[['fa-wand-magic-sparkles','Yeni sınav','Notlarından sınav üret','create','var(--am)'],['fa-rotate-right','Hata telafisi',M+' soru bekliyor','mistake','var(--ro)'],['fa-clock-rotate-left','Son sınavı tekrarla',last?esc(last.title).slice(0,26):'Henüz sınav yok','last','var(--bl)'],['fa-flask','Örnekle dene','Örnek notla hızlı başla','demo','var(--tl)']];
+  $('quick').innerHTML=Q.map(q=>`<button class="card lift qa" onclick="quick('${q[3]}')"><i class="fa-solid ${q[0]}" style="background:${q[4]}22;color:${q[4]}"></i>${q[1]}<small>${q[2]}</small></button>`).join('');
+  const w=[...Array(7)].map((_,i)=>{const dd=new Date();dd.setDate(dd.getDate()-(6-i));const k=day(dd);return{l:dd.toLocaleDateString('tr-TR',{weekday:'short'}),v:A.filter(a=>day(a.ts||a.id)===k).reduce((s,a)=>s+a.total,0)}}),mx=Math.max(1,...w.map(x=>x.v));
+  $('week').innerHTML=w.map(x=>`<div class="bar" title="${x.v} soru"><span class="muted" style="font-size:10px">${x.v||''}</span><div style="height:${Math.max(4,x.v/mx*80)}%"></div><b>${x.l}</b></div>`).join('');
+  $('recent').innerHTML=A.length?A.slice(0,4).map((a,i)=>`<div class="item" onclick="openQuiz(state.archive[${i}].quizData,{timer:0,review:true})"><span style="font-size:13px;font-weight:600">${esc(a.title).slice(0,34)}</span><span class="chip" style="color:${a.score>=70?'var(--tl)':'var(--ro)'}">${a.score}</span></div>`).join(''):'<div class="muted">Henüz sınav çözmedin.</div>';
+  $('tip').textContent=TIPS[new Date().getDate()%TIPS.length];
+}
+function quick(k){
+  if(k==='create')switchTab('create');
+  else if(k==='mistake')mistakeQuiz();
+  else if(k==='last'){state.archive[0]?openQuiz(state.archive[0].quizData,{timer:0,review:true}):toast('Henüz çözülmüş sınav yok.')}
+  else{switchTab('create');sample()}
+}
+function exportData(){const b=new Blob([JSON.stringify(state.archive,null,1)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='quizcraft-yedek.json';a.click()}
+
+/* ---- Pomodoro ---- */
+const pomo={mode:25,left:1500,id:null};
+function pomoDraw(){$('pomo').textContent=String(Math.floor(pomo.left/60)).padStart(2,'0')+':'+String(pomo.left%60).padStart(2,'0');$('pomo-go').textContent=pomo.id?'Duraklat':'Başlat';$('pm-focus').classList.toggle('sel',pomo.mode===25);$('pm-break').classList.toggle('sel',pomo.mode===5)}
+function pomoMode(m){clearInterval(pomo.id);pomo.id=null;pomo.mode=m;pomo.left=m*60;pomoDraw()}
+function pomoToggle(){if(pomo.id){clearInterval(pomo.id);pomo.id=null}else pomo.id=setInterval(()=>{pomo.left--;if(pomo.left<=0){clearInterval(pomo.id);pomo.id=null;pomo.left=0;toast(pomo.mode===25?'Odak turu bitti. Mola zamanı!':'Mola bitti. Çalışmaya dön!');confetti&&confetti({particleCount:60,spread:50})}pomoDraw()},1000);pomoDraw()}
+
+/* ---- Başlangıç ---- */
+fetch('/api/health').then(r=>r.json()).then(h=>{const ok=h.gemini&&h.groq;$('ai-dot').className='dot '+(ok?'ok':'bad');$('ai-status').textContent=ok?'Yapay zekâ bağlı':'API anahtarı eksik';if(!ok)toast('Sunucuda '+[!h.gemini&&'GEMINI_API_KEY',!h.groq&&'GROQ_API_KEY'].filter(Boolean).join(' ve ')+' tanımlı değil. .env dosyasını kontrol et.',1)}).catch(()=>{$('ai-dot').className='dot bad';$('ai-status').textContent='Sunucuya ulaşılamıyor'});
+badges();pomoDraw();switchTab('dashboard');
+</script>
+</body>
+</html>

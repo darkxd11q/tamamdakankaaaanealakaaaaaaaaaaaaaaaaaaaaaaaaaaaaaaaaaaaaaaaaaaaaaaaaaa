@@ -1,8 +1,9 @@
 {
   "name": "quizcraft-ai-pro",
-  "version": "1.0.0",
-  "description": "QuizCraft AI Pro - Tam Donanımlı Multi-Agent Sınav Mimarisi",
+  "version": "2.0.0",
+  "description": "QuizCraft AI Pro - Çoklu ajan sınav hazırlama sistemi",
   "main": "server.js",
+  "engines": { "node": ">=18" },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
