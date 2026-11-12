@@ -98,6 +98,7 @@ function normalizeQuiz(raw, p) {
     if (!q || typeof q.question !== 'string' || q.question.trim().length < 8) continue;
     const item = {
       question: q.question.trim(),
+      topic: String(q.topic || '').trim().slice(0, 60),
       explanation: String(q.explanation || '').trim() || 'Açıklama üretilemedi.',
       isBonus: false
     };
@@ -147,12 +148,13 @@ KURALLAR:
 5. ${p.visual ? 'En az bir soruyu metin tabanlı tablo, zaman çizelgesi veya şema (soru kökünde açıkça verilen) üzerinden yorumlatarak sor.' : 'Soru kökleri kendi içinde anlaşılır olsun.'}
 6. Soru kökünde "yukarıdaki metin" gibi dış referans verme; sorular tek başına anlaşılsın.
 7. "explanation": doğru cevabın neden doğru olduğunu 1-2 cümleyle açıkla.
-8. Dil: Türkçe. Yanıt SADECE geçerli bir JSON nesnesi olsun.
+8. "topic": sorunun ait olduğu konu; ${p.topics?.length ? 'yukarıdaki konu listesinden birini aynen yaz' : 'kısa bir konu adı yaz (en fazla 4 kelime)'}.
+9. Dil: Türkçe. Yanıt SADECE geçerli bir JSON nesnesi olsun.
 
 FORMAT: ${fmt}
 
 ÇIKTI ŞEMASI:
-{"title":"${p.title}","questions":[{"question":"...","options":[...],"correctAnswer":${p.type === 'mc' ? '0' : '"..."'},"explanation":"...","isBonus":false}]}
+{"title":"${p.title}","questions":[{"question":"...","topic":"...","options":[...],"correctAnswer":${p.type === 'mc' ? '0' : '"..."'},"explanation":"...","isBonus":false}]}
 
 MATERYAL:
 """
@@ -279,6 +281,43 @@ app.post('/api/agent4-evaluator', async (req, res) => {
     console.warn('Ajan4:', e.message);
     res.status(502).json({ error: e.message });
   }
+});
+
+// Ezber kartı üretici
+app.post('/api/ezber', async (req, res) => {
+  const topic = String(req.body.topic || '').trim().slice(0, 150), material = String(req.body.material || '').trim().slice(0, 8000);
+  const count = Math.min(Math.max(parseInt(req.body.count, 10) || 15, 5), 40);
+  if (topic.length < 2) return res.status(400).json({ error: 'Bir konu yaz.' });
+  const prompt = `Sen bir hafıza ve ezber koçusun. Konu: "${topic}".
+${material ? `Yalnızca şu materyaldeki bilgileri kullan:\n"""${material}"""` : 'Materyal verilmedi; yalnızca kesin bildiğin doğru bilgileri kullan, emin olmadığın bilgiyi YAZMA.'}
+Tam ${count} adet ezber kartı üret. Her kart: "front" (kısa soru, kavram veya ipucu), "back" (kısa ve net cevap, en fazla 25 kelime), "mnemonic" (bu bilgiyi akılda tutmak için kısa bir hafıza ipucu: kafiye, akrostiş veya canlandırma; en fazla 20 kelime).
+Kartlar kolaydan zora doğru, birbirinden bağımsız ve tekrarsız olsun. Ayrıca "tip": bu konuyu topluca ezberlemek için 2-3 cümlelik bir teknik önerisi yaz. Dil: Türkçe.
+Yalnızca JSON döndür: {"title":"kısa deste adı","tip":"...","cards":[{"front":"...","back":"...","mnemonic":"..."}]}`;
+  let lastErr;
+  for (let a = 1; a <= 2; a++) {
+    try {
+      const r = await callGroq(BIG_MODELS, [{ role: 'system', content: 'Yalnızca geçerli JSON döndürürsün.' }, { role: 'user', content: prompt }], { json: true, temperature: 0.4, effort: 'low', maxTokens: 8000 });
+      const j = extractJson(r.text), seen = new Set();
+      const cards = (j.cards || []).map(c => ({ f: String(c.front || '').trim().slice(0, 300), b: String(c.back || '').trim().slice(0, 400), m: String(c.mnemonic || '').trim().slice(0, 200) }))
+        .filter(c => c.f && c.b && !seen.has(c.f.toLowerCase()) && seen.add(c.f.toLowerCase()));
+      if (cards.length < Math.ceil(count * 0.7)) throw new Error(`Yalnızca ${cards.length} kart üretildi`);
+      return res.json({ title: String(j.title || topic).slice(0, 100), tip: String(j.tip || '').slice(0, 500), cards: cards.slice(0, count) });
+    } catch (e) { lastErr = e; console.warn('Ezber:', e.message); if (e.fatal) break; }
+  }
+  res.status(500).json({ error: 'Kartlar üretilemedi: ' + lastErr.message });
+});
+
+// Haftalık çalışma koçu
+app.post('/api/coach', async (req, res) => {
+  const stats = JSON.stringify(req.body.stats || {}).slice(0, 3000);
+  try {
+    const r = await callGroq(FAST_MODELS, [{ role: 'user', content:
+      `Sen samimi ve motive edici bir çalışma koçusun. Öğrencinin son 7 günlük verisi: ${stats}\nBuna göre Türkçe, kısa ve somut bir haftalık plan hazırla. Veride olmayan konu uydurma; veri yoksa genel bir başlangıç planı ver.\n` +
+      `Yalnızca JSON: {"summary":"2-3 cümle değerlendirme","focus":["en fazla 3 konu"],"plan":[{"day":"Pazartesi","task":"kısa görev"}],"motivation":"1 cümle"} (plan 7 gün olsun)` }],
+      { json: true, temperature: 0.5, effort: 'low', maxTokens: 2500, timeout: 40000 });
+    const j = extractJson(r.text);
+    res.json({ summary: String(j.summary || ''), focus: (j.focus || []).slice(0, 3).map(String), plan: (j.plan || []).slice(0, 7).map(p => ({ day: String(p.day || ''), task: String(p.task || '') })), motivation: String(j.motivation || '') });
+  } catch (e) { res.status(502).json({ error: e.message }); }
 });
 
 app.get('/', (_, res) => {

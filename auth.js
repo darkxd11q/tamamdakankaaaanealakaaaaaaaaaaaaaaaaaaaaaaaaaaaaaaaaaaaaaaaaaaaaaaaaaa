@@ -34,7 +34,17 @@ if (useSb) {
     delSessions: (uid, { id, exceptH } = {}) => sb('DELETE', 'sessions', `?uid=eq.${e(uid)}${id ? `&id=eq.${e(id)}` : ''}${exceptH ? `&h=neq.${exceptH}` : ''}`, undefined, 'return=minimal'),
     cleanup: () => sb('DELETE', 'sessions', `?exp=lt.${Date.now()}`, undefined, 'return=minimal'),
     archive: async uid => (await sb('GET', 'archives', `?uid=eq.${e(uid)}&limit=1`))[0]?.data || [],
-    putArchive: (uid, data) => sb('POST', 'archives', '?on_conflict=uid', { uid, data, updated_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal')
+    putArchive: (uid, data) => sb('POST', 'archives', '?on_conflict=uid', { uid, data, updated_at: new Date().toISOString() }, 'resolution=merge-duplicates,return=minimal'),
+    getData: async (uid, k) => (await sb('GET', 'userdata', `?uid=eq.${e(uid)}&k=eq.${e(k)}&limit=1`))[0]?.data ?? null,
+    putData: (uid, k, data) => sb('POST', 'userdata', '?on_conflict=uid,k', { uid, k, data }, 'resolution=merge-duplicates,return=minimal'),
+    createShare: s => sb('POST', 'shares', '', s, 'return=minimal'),
+    getShare: async c => (await sb('GET', 'shares', `?code=eq.${e(c)}&limit=1`))[0],
+    results: c => sb('GET', 'share_results', `?code=eq.${e(c)}&order=score.desc,ts.asc`),
+    upsertResult: async r => {
+      const old = (await sb('GET', 'share_results', `?code=eq.${e(r.code)}&uid=eq.${e(r.uid)}&limit=1`))[0];
+      if (old && old.score >= r.score) return;
+      await sb('POST', 'share_results', '?on_conflict=code,uid', r, 'resolution=merge-duplicates,return=minimal');
+    }
   };
 } else {
   const DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -44,7 +54,17 @@ if (useSb) {
   try { db = JSON.parse(fs.readFileSync(DBF, 'utf8')); } catch {}
   db.sessions.forEach(s => (s.id = s.id || rid()));
   const persist = () => { fs.writeFileSync(DBF + '.tmp', JSON.stringify(db)); fs.renameSync(DBF + '.tmp', DBF); };
+  const dFile = (u, k) => path.join(DIR, `data-${u}-${k}.json`), SF = path.join(DIR, 'shares.json');
+  let sh = { shares: {}, results: [] };
+  try { sh = JSON.parse(fs.readFileSync(SF, 'utf8')); } catch {}
+  const pS = () => fs.writeFileSync(SF, JSON.stringify(sh));
   store = {
+    getData: async (u, k) => { try { return JSON.parse(fs.readFileSync(dFile(u, k), 'utf8')); } catch { return null; } },
+    putData: async (u, k, d) => fs.writeFileSync(dFile(u, k), JSON.stringify(d)),
+    createShare: async s => { sh.shares[s.code] = s; pS(); },
+    getShare: async c => sh.shares[c],
+    results: async c => sh.results.filter(r => r.code === c).sort((a, b) => b.score - a.score || a.ts - b.ts),
+    upsertResult: async r => { const i = sh.results.findIndex(x => x.code === r.code && x.uid === r.uid); if (i >= 0) { if (sh.results[i].score >= r.score) return; sh.results[i] = r; } else sh.results.push(r); pS(); },
     userByName: async n => db.users.find(u => u.username === n),
     userById: async id => db.users.find(u => u.id === id),
     users: async () => db.users,
@@ -149,6 +169,41 @@ module.exports = app => {
     if (!Array.isArray(a) || a.length > 500) return res.status(400).json({ error: 'Geçersiz arşiv.' });
     if (JSON.stringify(a).length > 8e6) return res.status(413).json({ error: 'Arşiv çok büyük, eski sınavları sil.' });
     await store.putArchive(req.user.id, a); res.json({ ok: true });
+  }));
+
+  /* ---- Kullanıcıya özel veriler: ezber desteleri, tekrar takvimi, ayarlar/görevler ---- */
+  const KEYS = ['decks', 'srs', 'meta'];
+  app.get('/api/data/:k', wrap(async (req, res) => {
+    if (!KEYS.includes(req.params.k)) return res.status(404).json({ error: 'Bulunamadı.' });
+    res.json({ data: await store.getData(req.user.id, req.params.k) });
+  }));
+  app.put('/api/data/:k', wrap(async (req, res) => {
+    const d = req.body?.data;
+    if (!KEYS.includes(req.params.k) || d === undefined || JSON.stringify(d).length > 4e6) return res.status(400).json({ error: 'Geçersiz veri.' });
+    await store.putData(req.user.id, req.params.k, d); res.json({ ok: true });
+  }));
+
+  /* ---- Sınav paylaşımı ---- */
+  const mkCode = () => Array.from(crypto.randomBytes(6), b => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
+  const board = async c => (await store.results(c)).map(r => ({ username: r.username, score: r.score, correct: r.correct, total: r.total }));
+  app.post('/api/shares', wrap(async (req, res) => {
+    const q = req.body?.quiz;
+    if (!q || !Array.isArray(q.questions) || !q.questions.length || JSON.stringify(q).length > 3e5) return res.status(400).json({ error: 'Geçersiz sınav.' });
+    const s = { code: mkCode(), owner: req.user.id, owner_name: req.user.username, title: String(q.title || 'Sınav').slice(0, 120), quiz: q, created: Date.now() };
+    await store.createShare(s); res.json({ code: s.code });
+  }));
+  app.get('/api/shares/:code', wrap(async (req, res) => {
+    const s = await store.getShare(req.params.code);
+    if (!s) return res.status(404).json({ error: 'Paylaşım bulunamadı veya silinmiş.' });
+    res.json({ code: s.code, owner: s.owner_name, title: s.title, quiz: s.quiz, results: await board(s.code) });
+  }));
+  app.post('/api/shares/:code/result', wrap(async (req, res) => {
+    const s = await store.getShare(req.params.code);
+    if (!s) return res.status(404).json({ error: 'Paylaşım bulunamadı.' });
+    const n = k => Math.max(0, Math.round(Number(req.body[k]) || 0)), total = n('total');
+    if (!total || n('correct') > total || n('score') > 200) return res.status(400).json({ error: 'Geçersiz sonuç.' });
+    await store.upsertResult({ code: s.code, uid: req.user.id, username: req.user.username, score: n('score'), correct: n('correct'), total, ts: Date.now() });
+    res.json({ results: await board(s.code) });
   }));
 
   /* ---- Yönetici ---- */

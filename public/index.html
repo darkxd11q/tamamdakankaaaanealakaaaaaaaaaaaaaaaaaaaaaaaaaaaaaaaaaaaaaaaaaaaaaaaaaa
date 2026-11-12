@@ -115,6 +115,7 @@ dialog{margin:auto;background:var(--s1);color:var(--tx);border:1px solid var(--l
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media print{aside,header,.noprint,#toast{display:none!important}body{background:#fff;color:#000}.card{border-color:#999;background:#fff;color:#000;break-inside:avoid}.opt{border-color:#999;color:#000}}
 </style>
+<link rel="stylesheet" href="features.css">
 </head>
 <body class="boot">
 <div id="auth">
@@ -137,10 +138,12 @@ dialog{margin:auto;background:var(--s1);color:var(--tx);border:1px solid var(--l
   <nav>
     <button class="nav-btn active" id="nav-dashboard" onclick="switchTab('dashboard')"><i class="fa-solid fa-house"></i><span class="lb">Ana Panel</span></button>
     <button class="nav-btn" id="nav-create" onclick="switchTab('create')"><i class="fa-solid fa-wand-magic-sparkles"></i><span class="lb">Sınav Oluştur</span></button>
+    <button class="nav-btn" id="nav-ezber" onclick="switchTab('ezber')"><i class="fa-solid fa-layer-group"></i><span class="lb">Ezber</span></button>
     <button class="nav-btn" id="nav-archive" onclick="switchTab('archive')"><i class="fa-solid fa-box-archive"></i><span class="lb">Arşiv ve Analiz</span><span id="archive-badge" class="chip" style="margin-left:auto">0</span></button>
+    <button class="nav-btn" id="nav-mistakes" onclick="switchTab('mistakes')"><i class="fa-solid fa-book-bookmark"></i><span class="lb">Hata Defteri</span><span id="mistake-badge" class="chip" style="margin-left:auto;background:rgba(240,112,138,.15);color:var(--ro)">0</span></button>
+    <button class="nav-btn" id="nav-missions" onclick="switchTab('missions')"><i class="fa-solid fa-trophy"></i><span class="lb">Görevler</span></button>
     <button class="nav-btn" id="nav-account" onclick="switchTab('account')"><i class="fa-solid fa-user-gear"></i><span class="lb">Hesabım</span></button>
     <button class="nav-btn hidden" id="nav-admin" onclick="switchTab('admin')"><i class="fa-solid fa-user-shield"></i><span class="lb">Yönetici</span></button>
-    <button class="nav-btn" id="nav-mistakes" onclick="switchTab('mistakes')"><i class="fa-solid fa-book-bookmark"></i><span class="lb">Hata Defteri</span><span id="mistake-badge" class="chip" style="margin-left:auto;background:rgba(240,112,138,.15);color:var(--ro)">0</span></button>
   </nav>
   <div class="side-foot" style="flex-direction:column;align-items:stretch;gap:12px">
     <div class="row" style="gap:8px"><span class="dot" id="ai-dot"></span><span id="ai-status">AI durumu kontrol ediliyor…</span></div>
@@ -163,6 +166,7 @@ dialog{margin:auto;background:var(--s1);color:var(--tx);border:1px solid var(--l
   </div>
   <div class="g4" id="stats"></div>
   <div class="g4" id="quick"></div>
+  <div id="dash-extra" class="stack"></div>
   <div class="g2">
     <div class="card"><div class="row sp" style="margin-bottom:16px"><h3 style="font-size:15px">Son 7 gün</h3><span class="muted">çözülen soru</span></div><div class="bars" id="week"></div></div>
     <div class="card"><div class="row sp" style="margin-bottom:14px"><h3 style="font-size:15px">Son sınavlar</h3><button class="btn" style="padding:5px 10px;font-size:11px" onclick="switchTab('archive')">Tümü</button></div><div class="stack" style="display:flex;flex-direction:column;gap:8px" id="recent"></div></div>
@@ -207,6 +211,7 @@ dialog{margin:auto;background:var(--s1);color:var(--tx);border:1px solid var(--l
         <div><label class="f">Çözme süresi</label><select id="timer"><option value="0">Süresiz</option><option value="5">5 dakika</option><option value="10" selected>10 dakika</option><option value="20">20 dakika</option><option value="30">30 dakika</option></select></div>
       </div>
     </div>
+    <div class="row" style="gap:12px;align-items:flex-end"><div style="flex:1;max-width:320px"><label class="f" for="course-sel">Ders (klasör)</label><select id="course-sel"></select></div><button type="button" class="btn" onclick="const c=newCourse();if(c)$('course-sel').value=c.id">+ Yeni ders</button></div>
     <div class="row" style="justify-content:flex-end"><button class="btn btn-a" id="start" style="padding:16px 32px;font-size:14px" onclick="startPipeline()"><i class="fa-solid fa-microchip"></i> Sınavı hazırla</button></div>
   </div>
 
@@ -238,6 +243,9 @@ dialog{margin:auto;background:var(--s1);color:var(--tx);border:1px solid var(--l
   </div>
 </section>
 
+<section id="view-ezber" class="view hidden stack"></section>
+<section id="view-missions" class="view hidden stack"></section>
+<section id="view-weekly" class="view hidden stack"></section>
 <!-- ARCHIVE -->
 <section id="view-archive" class="view hidden stack"><div id="archive-grid" class="stack"></div></section>
 <section id="view-account" class="view hidden stack">
@@ -310,7 +318,7 @@ $('pdf-in').onchange=e=>{addFiles(e.target.files);e.target.value=''};
 const agent=(n,s)=>{const c=$('ag'+n);c.classList.remove('active','done','err');if(s)c.classList.add(s)};
 async function startPipeline(){
   if(state.busy)return;
-  const cfg={count:+$('qcount').value,type:$('qtype').value,optionCount:optCount,difficulty:$('diff').value,budget:$('budget').value,bonus:$('bonus').checked,visual:$('visual').checked,shuf:$('shuf').checked,duel:$('duel').checked,timer:+$('timer').value};
+  const cfg={course:$('course-sel')?.value||null,count:+$('qcount').value,type:$('qtype').value,optionCount:optCount,difficulty:$('diff').value,budget:$('budget').value,bonus:$('bonus').checked,visual:$('visual').checked,shuf:$('shuf').checked,duel:$('duel').checked,timer:+$('timer').value};
   const notes=$('notes').value.trim();
   if(!notes&&!state.pdfs.length)return toast('Önce bir PDF yükle veya not yaz.',1);
   state.busy=true;$('start').disabled=true;panel('pipeline');[1,2,3,4].forEach(n=>agent(n));$('logs').innerHTML='';
@@ -391,16 +399,16 @@ async function finishQuiz(){
   const grade=Math.round(pts);
   const correct=quiz.questions.reduce((s,q)=>s+(scores[q.id]===1?1:0),0);
   const wrong=quiz.questions.filter(q=>scores[q.id]!==1).map(q=>({...q,userAnswer:A[q.id]??null}));
-  const item={id:Date.now(),ts:Date.now(),title:quiz.title,score:grade,total:quiz.questions.length,correct,wrong,quizData:quiz};
+  const item={id:Date.now(),ts:Date.now(),title:quiz.title,course:state.cfg?.course||null,score:grade,total:quiz.questions.length,correct,wrong,quizData:quiz};
   state.archive.unshift(item);save();
   $('r-title').textContent=quiz.title;$('r-sub').textContent=`${correct}/${quiz.questions.length} tam doğru`;$('r-grade').textContent=grade;
   $('r-rival').innerHTML='';
-  if(state.cfg?.duel){const base={Kolay:78,Orta:68,Zor:58}[state.cfg.difficulty]||52;const rv=Math.min(100,Math.max(20,Math.round(base+Math.random()*20-10)));$('r-rival').innerHTML=`<i class="fa-solid fa-robot" style="color:var(--vi)"></i> Rakip: <b>${rv}</b> · ${grade>rv?'<span style="color:var(--tl)">Kazandın</span>':grade===rv?'Berabere':'<span style="color:var(--ro)">Rakip önde</span>'}`}
+  if(state.cfg?.duel){const base={Kolay:78,Orta:68,Zor:58}[state.cfg.difficulty]||52;const rv=Math.min(100,Math.max(20,Math.round(base+Math.random()*20-10)));if(grade>rv)addCounter('wins');$('r-rival').innerHTML=`<i class="fa-solid fa-robot" style="color:var(--vi)"></i> Rakip: <b>${rv}</b> · ${grade>rv?'<span style="color:var(--tl)">Kazandın</span>':grade===rv?'Berabere':'<span style="color:var(--ro)">Rakip önde</span>'}`}
   $('r-list').innerHTML=quiz.questions.map((q,i)=>{const s=scores[q.id],mc=q.options?.length,ua=A[q.id];
     const col=s===1?'var(--tl)':s===.5?'var(--am)':'var(--ro)',lab=s===1?'Doğru':s===.5?'Kısmen doğru':'Yanlış';
     return `<div class="card q" style="border-color:${col}"><b style="color:${col};font-size:12px">Soru ${i+1}: ${lab}</b><p style="font-weight:700;line-height:1.6;white-space:pre-line">${esc(q.question)}</p>
     <div style="background:var(--bg);border-radius:12px;padding:12px;font-size:12px;line-height:1.7"><div><b style="color:var(--bl)">Cevabın:</b> ${ua===undefined||ua===''?'Boş bıraktın':esc(mc?q.options[ua]:ua)}</div><div><b style="color:var(--tl)">Doğru cevap:</b> ${esc(mc?q.options[q.correctAnswer]:q.correctAnswer)}</div>${fb[q.id]?`<div><b style="color:var(--am)">Geri bildirim:</b> ${esc(fb[q.id])}</div>`:''}<div><b style="color:var(--vi)">Açıklama:</b> ${esc(q.explanation)}</div></div></div>`}).join('');
-  panel('result');badges();
+  panel('result');badges();afterQuiz(quiz,scores,item);
   if(grade>=70&&window.confetti)confetti({particleCount:120,spread:70,origin:{y:.3}});
 }
 
@@ -486,7 +494,8 @@ async function revokeOthers(){if(!confirm('Bu cihaz dışındaki tüm oturumlar 
 
 /* ---- Başlangıç ---- */
 applyTheme(localStorage.getItem('qc_theme')||'amber');pomoDraw();
-(async()=>{try{await enter((await api('/api/me')).user)}catch{showLogin()}})();
+window.addEventListener('load',async()=>{try{await enter((await api('/api/me')).user)}catch{showLogin()}});
 </script>
+<script src="features.js"></script>
 </body>
 </html>
