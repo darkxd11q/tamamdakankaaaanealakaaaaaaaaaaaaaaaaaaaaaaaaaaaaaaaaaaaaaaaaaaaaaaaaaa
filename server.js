@@ -69,7 +69,7 @@ async function geminiModels() {
   mcache.g = { t: Date.now(), v }; return v;
 }
 
-async function callGemini(prompt) {
+async function callGemini(prompt, images = [], { maxTokens = 4096 } = {}) {
   if (!GEMINI_KEY) throw new Error('GEMINI_API_KEY tanımlı değil');
   const errs = [];
   for (const model of await geminiModels()) {
@@ -77,7 +77,7 @@ async function callGemini(prompt) {
       const r = await timedFetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 4096 } })
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, ...images.map(i => ({ inline_data: { mime_type: i.mime, data: i.data } }))] }], generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens } })
       }, 60000);
       if (!r.ok) throw new Error(`${model}: HTTP ${r.status}`);
       const d = await r.json();
@@ -174,6 +174,7 @@ function normalizeQuiz(raw, p) {
   const seen = new Set();
   const uniq = out.filter(q => { const k = q.question.toLowerCase().slice(0, 60); if (seen.has(k)) return false; seen.add(k); return true; });
   // Bonus soru, istenen soru sayısına EK olarak gelir (ör. 6 soru + 1 bonus = 7)
+  let degraded = false;
   const flagged = uniq.find(q => q.isBonus);
   uniq.forEach(q => (q.isBonus = false));
   let bonusQ = p.bonus ? flagged || null : null;
@@ -181,13 +182,17 @@ function normalizeQuiz(raw, p) {
   if (normals.length < p.count) throw new Error(`Yalnızca ${normals.length}/${p.count} geçerli soru üretildi`);
   const qs = normals.slice(0, p.count);
   if (p.bonus) {
-    bonusQ = bonusQ || normals[p.count];
-    if (!bonusQ) throw new Error('Bonus soru üretilemedi');
-    bonusQ.isBonus = true; qs.push(bonusQ);
+    bonusQ = bonusQ || (normals.length > p.count ? normals[p.count] : null); // dizi sınırı kontrolü
+    if (!bonusQ) {
+      if (!p.allowDegraded) throw new Error('Bonus soru için yeterli ek soru üretilemedi');
+      bonusQ = qs.pop(); // güvenli yedek: son soru bonusa çevrilir, toplam soru sayısı korunur
+      degraded = true;
+    }
+    if (bonusQ) { bonusQ.isBonus = true; qs.push(bonusQ); }
   }
   qs.forEach((q, i) => (q.id = i + 1));
   // Başlık her zaman Ajan 2'nin belirlediği sınav konusundan gelir (modelin ürettiği rastgele başlıktan değil)
-  return { title: String(p.title || 'Deneme Sınavı').slice(0, 120), questions: qs };
+  return { title: String(p.title || 'Deneme Sınavı').slice(0, 120), questions: qs, degraded };
 }
 
 function buildPrompt(p) {
@@ -200,7 +205,7 @@ function buildPrompt(p) {
 
 KURALLAR:
 1. Toplam ${p.total} soru üret (bazıları kalite kontrolünde elenebilir). ${p.bonus ? 'Bunlardan YALNIZCA BİR tanesi bonus soru olsun ("isBonus": true) ve diğerlerinden daha zor olsun; kalan hepsinde "isBonus": false.' : 'Hepsinde "isBonus": false.'}
-2. Sorular YALNIZCA materyaldeki bilgilere dayansın; materyalde olmayan bilgi uydurma.
+2. Sorular YALNIZCA materyaldeki bilgilere dayansın; materyalde olmayan bilgi uydurma. Materyalde hazır sınav soruları (görselden okunmuş olabilir) varsa uygun olanları cevabıyla birlikte kullanabilir veya benzerlerini yazabilirsin.
 3. Sorular materyalin farklı konularına dengeli dağılsın${p.topics?.length ? ` (konular: ${p.topics.join('; ')})` : ''}; aynı bilgiyi tekrar sorma.
 4. Zorluk: ${p.difficulty}.${p.level ? ` Öğrenci seviyesi: ${p.level}; dil ve içeriği buna uygun tut.` : ''} ${p.difficulty.includes('LGS') ? 'Yorum, çıkarım ve kavrama düzeyinde, ÖSYM/MEB tarzı sorular yaz.' : 'Ezberden çok kavramayı ölç.'}
 5. Her soru TEK BAŞINA cevaplanabilmeli. Ortada olmayan bir metne, şiire, paragrafa, tabloya, grafiğe, şekle, haritaya veya görsele ASLA gönderme yapma ("metne göre", "metnin türü", "yukarıdaki şiirde", "tabloya göre" gibi ifadeler YASAK).
@@ -321,8 +326,8 @@ app.post('/api/agent3-generator', async (req, res) => {
         { role: 'system', content: 'Yalnızca geçerli JSON döndüren bir sınav üretim motorusun.' },
         { role: 'user', content: buildPrompt(p) }
       ], { json: true, temperature: attempt === 1 ? 0.5 : 0.3, effort: p.effort, maxTokens: 12000 });
-      const quiz = normalizeQuiz(extractJson(r.text), p);
-      return res.json({ quiz, model: r.model, attempts: attempt });
+      const { degraded, ...quiz } = normalizeQuiz(extractJson(r.text), { ...p, allowDegraded: attempt === 3 });
+      return res.json({ quiz, model: r.model, attempts: attempt, warning: degraded ? 'Yeterli ek soru üretilemediği için son soru bonus olarak işaretlendi.' : undefined });
     } catch (e) { lastErr = e; console.warn(`Ajan3 deneme ${attempt}:`, e.message); if (e.fatal) break; }
   }
   res.status(500).json({ error: 'Sınav üretilemedi: ' + (lastErr?.message || 'bilinmeyen hata') });
@@ -362,6 +367,51 @@ app.post('/api/agent4-evaluator', async (req, res) => {
     console.warn('Ajan4:', e.message);
     res.status(502).json({ error: e.message });
   }
+});
+
+// Görselden metin/soru okuma (Gemini Vision)
+const uploadImg = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024, files: 6 }, fileFilter: (_, f, cb) => cb(null, /^image\/(png|jpe?g|webp)$/.test(f.mimetype)) });
+const OCR_PROMPT = `Bu görsellerdeki (ders notu, kitap sayfası, tahta, soru kâğıdı, ekran görüntüsü olabilir) TÜM yazıları, soruları, şıkları, tabloları ve formülleri eksiksiz oku ve düzenli Türkçe metin olarak yaz.
+- Görselde olmayan hiçbir şey ekleme, yorum yapma, özetleme.
+- Birden fazla görsel varsa her birinin başına "--- Görsel N ---" yaz.
+- Soru ve şıklar varsa numaralarıyla koru; cevap anahtarı görünüyorsa belirt.
+- Okunamayan yeri [okunamadı] ile işaretle.
+Yalnızca okunan metni döndür.`;
+app.post('/api/ocr', (req, res, next) => uploadImg.array('images', 6)(req, res, err => err ? res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'Her görsel en fazla 8 MB olabilir.' : 'Görsel yüklenemedi: ' + err.message }) : next()), async (req, res) => {
+  const files = req.files || [];
+  if (!files.length) return res.status(400).json({ error: 'Geçerli görsel bulunamadı (PNG, JPG veya WEBP).' });
+  if (files.reduce((t, f) => t + f.size, 0) > 18 * 1024 * 1024) return res.status(413).json({ error: 'Görseller toplamda 18 MB\'ı geçemez.' });
+  if (!GEMINI_KEY) return res.status(400).json({ error: 'Görsel okuma için GEMINI_API_KEY gerekli.' });
+  try {
+    const r = await callGemini(OCR_PROMPT, files.map(f => ({ mime: f.mimetype, data: f.buffer.toString('base64') })), { maxTokens: 8192 });
+    const text = r.text.trim().slice(0, 30000);
+    if (text.replace(/\s|\[okunamadı\]/g, '').length < 10) return res.status(422).json({ error: 'Görselde okunabilir metin bulunamadı. Daha net bir fotoğraf dene.' });
+    res.json({ text, model: r.model, count: files.length });
+  } catch (e) { res.status(502).json({ error: 'Görsel okunamadı: ' + e.message }); }
+});
+
+// AI sohbet koçu: yanlış yapılan soru hakkında birebir sohbet
+const chatHits = new Map();
+app.post('/api/chat-coach', async (req, res) => {
+  const now = Date.now(), hits = (chatHits.get(req.user.id) || []).filter(t => now - t < 60000);
+  if (hits.length >= 20) return res.status(429).json({ error: 'Çok hızlı yazıyorsun, bir dakika sonra tekrar dene.' });
+  chatHits.set(req.user.id, [...hits, now]);
+  const q = req.body.question || {}, message = String(req.body.message || '').trim().slice(0, 1000);
+  if (!message || typeof q.question !== 'string') return res.status(400).json({ error: 'Soru veya mesaj eksik.' });
+  const options = Array.isArray(q.options) ? q.options.slice(0, 5).map(o => String(o).slice(0, 300)) : [];
+  const correct = options.length && Number.isInteger(q.correctAnswer) ? options[q.correctAnswer] : String(q.correctAnswer ?? '').slice(0, 600);
+  const history = (Array.isArray(req.body.history) ? req.body.history : []).slice(-10).map(h => ({ role: h.role === 'assistant' ? 'assistant' : 'user', content: String(h.content || '').slice(0, 1500) }));
+  const system = `Sen sabırlı, samimi ve cesaretlendirici bir özel ders hocasısın. Öğrenci aşağıdaki soruyu yanlış yaptı veya anlamadı; onunla birebir sohbet ediyorsun.
+SORU: ${String(q.question).slice(0, 1500)}
+${options.length ? 'ŞIKLAR:\\n' + options.map((o, i) => `${'ABCDE'[i]}) ${o}`).join('\\n') + '\\n' : ''}DOĞRU CEVAP: ${correct}
+ÖĞRENCİNİN CEVABI: ${String(req.body.userAnswer || 'Boş bıraktı').slice(0, 600)}
+HAZIR AÇIKLAMA: ${String(q.explanation || '').slice(0, 800)}
+KONU: ${String(q.topic || '').slice(0, 80)}
+KURALLAR: Türkçe yaz. Kısa ve net ol (en fazla yaklaşık 150 kelime; gerekirse kısa maddeler). Öğrencinin hatasını nazikçe ve somut göster: hangi düşünce adımı yanlış gitti? "Daha basit" istenirse günlük hayattan bir örnek veya benzetme kullan. Cevabı doğru cevapla tutarlı anlat; bilmediğin şeyi uydurma. Soruyla ilgisiz bir şey sorulursa nazikçe soruya dön.`;
+  try {
+    const r = await callGroq(BIG_MODELS, [{ role: 'system', content: system }, ...history, { role: 'user', content: message }], { temperature: 0.5, effort: 'low', maxTokens: 1500, timeout: 45000 });
+    res.json({ reply: r.text.replace(/<think>[\s\S]*?<\/think>/g, '').trim() });
+  } catch (e) { res.status(502).json({ error: 'Koç şu an yanıt veremiyor: ' + e.message }); }
 });
 
 // Ezber kartı üretici

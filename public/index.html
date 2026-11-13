@@ -186,8 +186,8 @@ dialog{margin:auto;background:var(--s1);color:var(--tx);border:1px solid var(--l
     <div class="card stack">
       <div><h3 style="font-size:16px">Çalışma materyali</h3><p class="muted">PDF yükle veya notlarını yapıştır. İkisini birlikte de kullanabilirsin.</p></div>
       <div class="g2">
-        <div><div class="row sp" style="margin-bottom:8px"><span class="label f" style="margin:0">PDF dosyaları</span><span id="pdf-count" class="chip">0 PDF</span></div>
-          <div class="drop" id="drop"><input type="file" id="pdf-in" multiple accept="application/pdf"><i class="fa-solid fa-folder-plus" style="font-size:22px;color:var(--am)"></i><b style="font-size:13px">PDF’leri sürükle veya seç</b><span class="muted">En fazla 10 dosya, her biri 25 MB</span></div>
+        <div><div class="row sp" style="margin-bottom:8px"><span class="label f" style="margin:0">PDF ve görseller</span><span id="pdf-count" class="chip">0 PDF · 0 görsel</span></div>
+          <div class="drop" id="drop"><input type="file" id="pdf-in" multiple accept="application/pdf,image/png,image/jpeg,image/webp"><i class="fa-solid fa-folder-plus" style="font-size:22px;color:var(--am)"></i><b style="font-size:13px">PDF veya fotoğraf sürükle / seç</b><span class="muted">PDF, PNG, JPG, WEBP · ders notu ve soru fotoğrafları okunur</span></div>
           <div id="pdf-list" style="display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:130px;overflow-y:auto"></div></div>
         <div style="display:flex;flex-direction:column"><div class="row sp" style="margin-bottom:8px"><label class="f" for="notes" style="margin:0">Notların</label><button class="btn" style="padding:4px 10px;font-size:11px" onclick="sample()">Örnek not</button></div>
           <textarea id="notes" rows="8" placeholder="Ders notlarını buraya yapıştır…" style="resize:none;flex:1"></textarea></div>
@@ -318,7 +318,7 @@ async function startPipeline(){
   if(state.busy)return;
   const csel=$('course-sel')?.value||'';const cfg={course:csel&&csel!=='none'?csel:null,autoCourse:!csel,count:+$('qcount').value,type:$('qtype').value,optionCount:optCount,difficulty:$('diff').value,budget:$('budget').value,bonus:$('bonus').checked,duel:$('duel').checked,timer:+$('timer').value};
   const notes=$('notes').value.trim();
-  if(!notes&&!state.pdfs.length)return toast('Önce bir PDF yükle veya not yaz.',1);
+  if(!notes&&!state.pdfs.length&&!state.imgs.length)return toast('Önce bir PDF/görsel yükle veya not yaz.',1);
   state.busy=true;$('start').disabled=true;panel('pipeline');[1,2,3,4].forEach(n=>agent(n));$('logs').innerHTML='';
   const log=m=>{$('logs').insertAdjacentHTML('beforeend',`<div>› ${esc(m)}</div>`);$('logs').scrollTop=1e6};
   let step=0;
@@ -332,6 +332,14 @@ async function startPipeline(){
       (d.warnings||[]).forEach(w=>{log('Uyarı: '+w);toast(w,1)});
       text+='\n\n'+d.text;
     }
+    if(state.imgs.length){
+      log('Görseller okunuyor (Gemini Vision)…');
+      const fi=new FormData();state.imgs.forEach(f=>fi.append('images',f));
+      const r2=await fetch('/api/ocr',{method:'POST',body:fi});const d2=await r2.json().catch(()=>({}));
+      if(r2.status===401){showLogin();throw new Error('Oturum süresi doldu.')}
+      if(!r2.ok)throw new Error(d2.error||'Görseller okunamadı');
+      log(`${d2.count} görselden ${d2.text.length} karakter okundu.`);text+='\n\n'+d2.text;
+    }
     if(text.replace(/---.*---/g,'').trim().length<30)throw new Error('Materyal çok kısa veya okunamadı. Daha fazla metin ekle.');
     step=1;agent(1,'active');log('Ajan 1 belgenin tamamını analiz ediyor…');
     const a1=await api('/api/agent1-analyst',{text});
@@ -343,6 +351,7 @@ async function startPipeline(){
     step=3;agent(3,'active');log(`Ajan 3 ${cfg.count} soru üretiyor (${cfg.difficulty})…`);
     const a3=await api('/api/agent3-generator',{summary:a1.result,title:a2.title,topics:a2.topics,count:cfg.count,type:cfg.type,optionCount:cfg.optionCount,difficulty:cfg.difficulty,bonus:cfg.bonus,level:typeof levelText==='function'?levelText():'',budget:cfg.budget});
     log(`Sorular hazır (${a3.model}${a3.attempts>1?', '+a3.attempts+'. denemede':''}).`);agent(3,'done');
+    if(a3.warning)toast(a3.warning);
     let quiz=a3.quiz;
     step=4;agent(4,'active');log('Ajan 4 cevap anahtarını denetliyor…');
     try{const a4=await api('/api/agent4-evaluator',{mode:'verify',quiz,summary:a1.result});quiz=a4.quiz;log(a4.fixed?`${a4.fixed} cevap anahtarı düzeltildi.`:'Cevap anahtarı doğrulandı.');agent(4,'done')}
@@ -495,6 +504,7 @@ async function revokeOthers(){if(!confirm('Bu cihaz dışındaki tüm oturumlar 
 applyTheme(localStorage.getItem('qc_theme')||'amber');pomoDraw();
 window.addEventListener('load',async()=>{try{await enter((await api('/api/me')).user)}catch{showLogin()}});
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="features.js"></script>
 </body>
 </html>

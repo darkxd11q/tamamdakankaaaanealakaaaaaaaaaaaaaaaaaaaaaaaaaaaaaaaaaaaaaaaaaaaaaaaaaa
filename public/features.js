@@ -105,12 +105,13 @@ function renderArchive() {
     cs.map(c => `<button ${b.replace('"opt-btn"', `"opt-btn ${arcFilter === c.id ? 'sel' : ''}"`)} onclick="arcFilter='${c.id}';renderArchive()"><i class="fa-solid fa-folder" style="color:${c.color}"></i> ${esc(c.name)}</button>`).join('') +
     `<button class="btn" style="padding:6px 12px" onclick="newCourse();renderArchive()">+ Ders</button>${courseOf(arcFilter) ? `<button class="btn btn-r" style="padding:6px 12px" onclick="delCourse('${arcFilter}')">Dersi sil</button>` : ''}</div>`;
   const list = state.archive.map((a, i) => [a, i]).filter(([a]) => arcFilter === 'all' || a.course === arcFilter);
-  $('archive-grid').innerHTML = chips + (list.length ? list.map(([a, i]) => `<div class="card lift q"><div class="row sp"><span class="muted">${new Date(a.ts || a.id).toLocaleDateString('tr-TR')}</span><div class="row" style="gap:6px"><span class="chip" style="background:rgba(79,209,181,.15);color:var(--tl)">${a.correct}/${a.total} doğru</span><span class="chip">Not ${a.score}</span></div></div>
+  $('archive-grid').innerHTML = analyticsHTML('a') + chips + (list.length ? list.map(([a, i]) => `<div class="card lift q"><div class="row sp"><span class="muted">${new Date(a.ts || a.id).toLocaleDateString('tr-TR')}</span><div class="row" style="gap:6px"><span class="chip" style="background:rgba(79,209,181,.15);color:var(--tl)">${a.correct}/${a.total} doğru</span><span class="chip">Not ${a.score}</span></div></div>
     <h4 style="font-size:17px">${esc(a.title)}</h4>
     <div class="row sp" style="flex-wrap:wrap">${(a.wrong || []).length ? `<div class="muted" style="color:var(--ro)"><i class="fa-solid fa-triangle-exclamation"></i> ${a.wrong.length} yanlış soru</div>` : `<div class="muted" style="color:var(--tl)"><i class="fa-solid fa-circle-check"></i> Hiç yanlışın yok</div>`}
     <select onchange="setCourse(${i},this.value)" style="width:auto;padding:6px 10px;font-size:11px" aria-label="Ders"><option value="">Ders yok</option>${cs.map(c => `<option value="${c.id}" ${a.course === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
     <div class="row" style="flex-wrap:wrap"><button class="btn btn-a" onclick="openQuiz(state.archive[${i}].quizData,{timer:0,review:true})">Tekrar çöz</button>${(a.wrong || []).length ? `<button class="btn btn-r" onclick="mistakeQuiz(state.archive[${i}].wrong.map(w=>({...w})))">Yanlışlarla sınav yap</button>` : ''}<button class="btn" onclick="shareQuiz(${i})"><i class="fa-solid fa-share-nodes"></i> ${a.shareCode ? 'Paylaşım' : 'Paylaş'}</button><button class="btn" onclick="delArchive(${i})" aria-label="Sil"><i class="fa-solid fa-trash"></i></button></div></div>`).join('')
     : '<div class="card muted">Bu klasörde sınav yok.</div>');
+  drawAnalytics('a', list.map(([a]) => a));
 }
 
 /* ---------- Paylaşım ---------- */
@@ -138,6 +139,11 @@ async function handleShareLink() {
 
 /* ---------- Sınav bitince ---------- */
 async function afterQuiz(quiz, scores, item) {
+  state.lastResult = { quiz, A: { ...state.answers } };
+  document.querySelectorAll('#r-list > .card').forEach((c, i) => { // paylaşım tablosu eklenmeden önce, kart sırası = soru sırası
+    const q = quiz.questions[i];
+    if (q && scores[q.id] !== 1) c.insertAdjacentHTML('beforeend', `<div class="noprint"><button class="btn coach-btn" onclick="coachResult(${i})"><i class="fa-solid fa-comments"></i> Hocama sor</button></div>`);
+  });
   srsUpdate(quiz, scores);
   const c = state.cfg?.share;
   if (c) {
@@ -196,7 +202,7 @@ function renderDashExtras() {
   const el = $('dash-extra'); if (!el) return;
   const m = state.meta, due = dueQs().length, rd = m.reviewDay, tot = state.decks.reduce((s, d) => s + d.cards.length, 0), kn = known(), kp = tot ? Math.round(kn / tot * 100) : 0;
   const top = MISSIONS.map(x => ({ x, ...mProg(x) })).sort((a, b) => b.p - a.p).slice(0, 3);
-  el.innerHTML = `<div class="g2">
+  el.innerHTML = analyticsHTML('d') + `<div class="g2">
   <div class="card"><h3 style="font-size:15px"><i class="fa-solid fa-calendar-week" style="color:var(--am)"></i> Haftalık değerlendirme</h3>
     ${rd ? `<p class="muted" style="margin:10px 0 14px">${wkDue() ? 'Raporun hazır!' : `Sonraki rapor: <b style="color:var(--tx)">${DAYS[rd][0]}, ${nextWk()}</b>. O günden sonraki ilk girişinde otomatik açılır.`}</p>` : '<p class="muted" style="margin:10px 0 14px">Rapor için bir gün seç: o günden sonraki ilk girişinde konu analizi ve çalışma planın karşına çıkar.</p>'}
     <div class="row" style="flex-wrap:wrap">${['sat', 'sun'].map(d => `<button class="opt-btn ${rd === d ? 'sel' : ''}" style="flex:none;padding:8px 16px" onclick="setReviewDay('${d}')">${DAYS[d][0]}</button>`).join('')}<button class="btn" onclick="switchTab('weekly')">Raporu şimdi aç</button></div></div>
@@ -205,6 +211,7 @@ function renderDashExtras() {
   <div class="card"><h3 style="font-size:15px"><i class="fa-solid fa-layer-group" style="color:var(--vi)"></i> Ezber</h3><p class="muted" style="margin:10px 0">${state.decks.length ? `${state.decks.length} deste · ${kn}/${tot} kart ezberlendi` : 'Bir konu yaz, yapay zekâ ezber kartlarını hazırlasın.'}</p><div class="pbar" style="margin-bottom:14px"><div style="width:${kp}%;background:var(--vi)"></div></div><button class="btn btn-a" onclick="switchTab('ezber')">Ezbere git</button></div>
   <div class="card"><div class="row sp" style="margin-bottom:12px"><h3 style="font-size:15px"><i class="fa-solid fa-trophy" style="color:var(--am)"></i> Görevler</h3><button class="btn" style="padding:5px 10px;font-size:11px" onclick="switchTab('missions')">Tümü</button></div>
     ${top.map(t => `<div class="row" style="margin-bottom:10px"><div class="ms-i" style="--c:${t.x.color};width:38px;height:38px;font-size:16px;border-radius:11px"><i class="fa-solid ${t.x.icon}"></i></div><div style="flex:1;min-width:0"><div class="row sp"><b style="font-size:12px">${t.x.name} · Sv ${t.l}</b><span class="muted">${t.v}/${t.nx}</span></div><div class="pbar" style="margin-top:5px"><div style="width:${t.p}%;background:${t.x.color}"></div></div></div></div>`).join('')}</div></div>`;
+  drawAnalytics('d', state.archive);
 }
 
 /* ---------- Ezber ---------- */
@@ -341,3 +348,121 @@ renderAccount = async function () {
   await _ra(); $('prof-card')?.remove();
   $('view-account').insertAdjacentHTML('afterbegin', `<div class="card row sp" id="prof-card" style="flex-wrap:wrap"><div><h3 style="font-size:16px">Sınıf ve dönem</h3><p class="muted" style="margin-top:4px">${esc(levelText()) || 'Henüz belirlenmedi'}</p></div><button class="btn btn-a" onclick="openOnboarding(true)">${levelText() ? 'Değiştir / dersleri yenile' : 'Belirle ve dersleri getir'}</button></div>`);
 };
+
+/* ================= AI sohbet koçu ================= */
+const co = { q: null, ua: '', hist: [], busy: false };
+const CO_CHIPS = ['Nerede hata yaptım?', 'Bunu daha basit açıklar mısın?', 'Benzer bir örnek verir misin?', 'Bunu nasıl akılda tutarım?'];
+const ansText = (q, ua) => (ua === undefined || ua === null || ua === '' ? 'Boş bıraktı' : q.options?.length ? String(q.options[ua] ?? ua) : String(ua));
+const fmtMsg = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+function openCoach(q, ua) {
+  co.q = q; co.ua = ansText(q, ua); co.hist = []; co.busy = false;
+  let d = $('coach'); if (!d) { d = document.createElement('dialog'); d.id = 'coach'; d.className = 'coach'; document.body.appendChild(d); }
+  const right = q.options?.length ? q.options[q.correctAnswer] : q.correctAnswer;
+  d.innerHTML = `<div class="co-h"><div class="ms-i" style="--c:var(--am);width:38px;height:38px;font-size:16px;border-radius:11px"><i class="fa-solid fa-user-graduate"></i></div><div style="flex:1"><b>Hocana sor</b><div class="muted">Bu soru hakkında istediğini sor</div></div><button class="btn" style="padding:6px 11px" onclick="$('coach').close()" aria-label="Kapat">✕</button></div>
+  <div class="co-q"><b>Soru:</b> ${esc(q.question)}<br><b style="color:var(--tl)">Doğru cevap:</b> ${esc(right)}<br><b style="color:var(--ro)">Senin cevabın:</b> ${esc(co.ua)}</div>
+  <div class="co-m" id="co-m"></div>
+  <div class="co-c">${CO_CHIPS.map(c => `<button type="button" onclick="coSend(this.textContent)">${c}</button>`).join('')}</div>
+  <form class="co-f" onsubmit="coSubmit(event)"><input id="co-in" placeholder="Sorunu yaz…" maxlength="1000" autocomplete="off"><button class="btn btn-a" id="co-go" aria-label="Gönder"><i class="fa-solid fa-paper-plane"></i></button></form>`;
+  coAdd('a', 'Merhaba! Bu soruda takıldığını görüyorum. Aşağıdaki hazır sorulardan birini seçebilir ya da kendi sorunu yazabilirsin.');
+  d.showModal(); $('co-in').focus();
+}
+function coAdd(role, text) { const m = $('co-m'); m.insertAdjacentHTML('beforeend', `<div class="msg ${role}">${fmtMsg(text)}</div>`); m.scrollTop = m.scrollHeight; }
+function coTyping(on) { $('co-typing')?.remove(); if (on) { const m = $('co-m'); m.insertAdjacentHTML('beforeend', '<div class="msg a typing" id="co-typing"><span></span><span></span><span></span></div>'); m.scrollTop = m.scrollHeight; } }
+async function coSend(text) {
+  text = String(text || '').trim(); if (!text || co.busy) return;
+  co.busy = true; $('co-go').disabled = true; coAdd('u', text); coTyping(true);
+  try {
+    const q = co.q, r = await api('/api/chat-coach', { question: { question: q.question, options: q.options || [], correctAnswer: q.correctAnswer, explanation: q.explanation, topic: q.topic || '' }, userAnswer: co.ua, history: co.hist, message: text });
+    co.hist.push({ role: 'user', content: text }, { role: 'assistant', content: r.reply }); co.hist = co.hist.slice(-12);
+    coTyping(false); coAdd('a', r.reply);
+  } catch (e) { coTyping(false); coAdd('a', '⚠️ ' + e.message); }
+  co.busy = false; $('co-go').disabled = false; $('co-in').focus();
+}
+function coSubmit(e) { e.preventDefault(); const i = $('co-in'), v = i.value; i.value = ''; coSend(v); }
+function coachResult(i) { const { quiz, A } = state.lastResult, q = quiz.questions[i]; openCoach(q, A[q.id]); }
+function coachMistake(i) { const m = allMistakes()[i]; if (m) openCoach(m, m.userAnswer); }
+const _rm = renderMistakes;
+renderMistakes = function () {
+  _rm(); const m = allMistakes();
+  document.querySelectorAll('#mistake-list > .card').forEach((c, i) => { if (m[i]) c.insertAdjacentHTML('beforeend', `<div><button class="btn coach-btn" onclick="coachMistake(${i})"><i class="fa-solid fa-comments"></i> Hocama sor</button></div>`); });
+};
+
+/* ================= Görselden soru/metin okuma (Gemini Vision) ================= */
+state.imgs = [];
+const IMG_OK = /^image\/(png|jpe?g|webp)$/;
+async function shrink(f) { // büyük telefon fotoğraflarını küçült (yükleme ve okuma daha hızlı olur)
+  if (f.size < 1.5e6) return f;
+  try {
+    const bmp = await createImageBitmap(f), sc = Math.min(1, 1800 / Math.max(bmp.width, bmp.height)), c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * sc); c.height = Math.round(bmp.height * sc); c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const b = await new Promise(r => c.toBlob(r, 'image/jpeg', .85));
+    return b ? new File([b], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : f;
+  } catch { return f; }
+}
+async function addFiles(fs) {
+  for (const f of Array.from(fs)) { // Array.from ilk satırda: input temizlenmeden dosyalar yakalanır
+    if (f.type === 'application/pdf') { if (state.pdfs.length < 10 && !state.pdfs.some(p => p.name === f.name && p.size === f.size)) state.pdfs.push(f); }
+    else if (IMG_OK.test(f.type)) { if (state.imgs.length >= 6) { toast('En fazla 6 görsel yükleyebilirsin.', 1); continue; } state.imgs.push(await shrink(f)); }
+    else toast(`${f.name}: desteklenmeyen dosya (PDF, PNG, JPG veya WEBP yükle).`, 1);
+  }
+  renderPdfs();
+}
+function renderPdfs() {
+  $('pdf-count').textContent = `${state.pdfs.length} PDF · ${state.imgs.length} görsel`;
+  const rm = (arr, i) => `<button class="btn" style="padding:3px 9px" onclick="state.${arr}.splice(${i},1);renderPdfs()" aria-label="Kaldır">×</button>`;
+  $('pdf-list').innerHTML = state.pdfs.map((f, i) => `<div class="item" style="cursor:default"><span style="font-size:12px"><i class="fa-solid fa-file-pdf" style="color:var(--ro)"></i> ${esc(f.name)}</span>${rm('pdfs', i)}</div>`).join('')
+    + state.imgs.map((f, i) => `<div class="item" style="cursor:default"><span style="font-size:12px;display:flex;align-items:center;gap:8px"><img src="${URL.createObjectURL(f)}" alt="" style="width:28px;height:28px;object-fit:cover;border-radius:6px">${esc(f.name)}</span>${rm('imgs', i)}</div>`).join('');
+}
+
+/* ================= Başarı grafikleri (Chart.js) ================= */
+let anRange = '30', anTopic = 'bar';
+const anSrc = {}, anCh = {};
+const cvar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const anItems = all => (anRange === 'all' ? all : all.filter(a => (a.ts || a.id) >= Date.now() - +anRange * 864e5));
+function analyticsHTML(p) {
+  const rb = (v, l) => `<button class="opt-btn ${anRange === v ? 'sel' : ''}" style="flex:none;padding:5px 12px" onclick="setRange('${v}')">${l}</button>`;
+  const tb = (v, l) => `<button class="opt-btn ${anTopic === v ? 'sel' : ''}" style="flex:none;padding:4px 10px;font-size:11px" onclick="setTopicMode('${v}')">${l}</button>`;
+  return `<div class="stack" id="an-${p}"><div class="row sp" style="flex-wrap:wrap"><h3 style="font-size:16px"><i class="fa-solid fa-chart-line" style="color:var(--am)"></i> Başarı analizi</h3><div class="row" style="gap:6px">${rb('7', '7 gün')}${rb('30', '30 gün')}${rb('all', 'Tümü')}</div></div>
+  <div class="g2"><div class="card"><div class="row sp"><b style="font-size:13px">Puan trendi</b><span class="chip" id="an-${p}-d" style="display:none"></span></div><div class="chart-box" id="an-${p}-lb"><canvas id="an-${p}-line"></canvas></div></div>
+  <div class="card"><div class="row sp"><b style="font-size:13px">Konu bazlı başarı</b><div class="row" style="gap:6px">${tb('bar', 'Çubuk')}${tb('pie', 'Pasta')}</div></div><div class="chart-box" id="an-${p}-tb"><canvas id="an-${p}-topic"></canvas></div></div></div></div>`;
+}
+function drawAnalytics(p, all) {
+  anSrc[p] = all;
+  ['line', 'topic'].forEach(k => { anCh[p + k]?.destroy(); delete anCh[p + k]; });
+  if (!$('an-' + p)) return;
+  const empty = (id, msg) => { $(id).innerHTML = `<p class="muted" style="padding:80px 10px;text-align:center">${msg}</p>`; };
+  if (!window.Chart) { empty(`an-${p}-lb`, 'Grafik kütüphanesi yüklenemedi.'); empty(`an-${p}-tb`, 'İnternet bağlantını kontrol et.'); return; }
+  const items = anItems(all).slice().sort((a, b) => (a.ts || a.id) - (b.ts || b.id));
+  Chart.defaults.color = cvar('--mu'); Chart.defaults.font.family = 'Manrope, sans-serif'; Chart.defaults.borderColor = cvar('--ln');
+  const am = cvar('--am'), tl = cvar('--tl'), ro = cvar('--ro'), grid = { color: cvar('--ln') };
+  if (items.length < 2) empty(`an-${p}-lb`, 'Trend için bu aralıkta en az 2 sınav gerekli.');
+  else {
+    const sc = items.map(a => a.score), ma = sc.map((_, i) => Math.round(sc.slice(Math.max(0, i - 2), i + 1).reduce((s, x) => s + x, 0) / Math.min(i + 1, 3)));
+    const h = Math.floor(sc.length / 2), avg = l => l.reduce((s, x) => s + x, 0) / l.length, dl = Math.round(avg(sc.slice(h)) - avg(sc.slice(0, h)));
+    const chip = $(`an-${p}-d`); chip.style.display = ''; chip.textContent = (dl > 0 ? '↑ +' : dl < 0 ? '↓ ' : '→ ') + dl + ' puan'; chip.style.color = dl > 0 ? tl : dl < 0 ? ro : cvar('--mu');
+    anCh[p + 'line'] = new Chart($(`an-${p}-line`), { type: 'line', data: { labels: items.map(a => new Date(a.ts || a.id).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })), datasets: [
+      { label: 'Not', data: sc, borderColor: am, backgroundColor: `rgba(${cvar('--amr')},.15)`, fill: true, tension: .35, pointRadius: 4, pointBackgroundColor: am },
+      { label: 'Hareketli ortalama (3 sınav)', data: ma, borderColor: tl, borderDash: [6, 5], pointRadius: 0, tension: .35, fill: false }] },
+      options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { y: { min: 0, suggestedMax: Math.max(100, ...sc), grid }, x: { grid: { display: false } } },
+        plugins: { legend: { labels: { usePointStyle: true, boxWidth: 8 } }, tooltip: { callbacks: { title: c => items[c[0].dataIndex].title, afterBody: c => { const a = items[c[0].dataIndex]; return `${a.correct}/${a.total} doğru`; } } } } } });
+  }
+  const ts = topicStats(items).sort((a, b) => b.total - a.total).slice(0, 8);
+  if (!ts.length) empty(`an-${p}-tb`, 'Konu analizi için bu aralıkta sınav yok.');
+  else {
+    const lab = ts.map(t => (t.topic.length > 22 ? t.topic.slice(0, 21) + '…' : t.topic)), pct = ts.map(t => Math.round((t.total - t.wrong) / t.total * 100));
+    const pal = [am, tl, cvar('--bl'), cvar('--vi'), ro, '#fbbf24', '#8ab4ff', '#f0abfc'];
+    anCh[p + 'topic'] = new Chart($(`an-${p}-topic`), anTopic === 'bar'
+      ? { type: 'bar', data: { labels: lab, datasets: [{ data: pct, borderRadius: 6, backgroundColor: pct.map(v => (v < 50 ? ro : v < 75 ? am : tl)) }] },
+          options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { min: 0, max: 100, grid, ticks: { callback: v => v + '%' } }, y: { grid: { display: false } } },
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `%${c.raw} · ${ts[c.dataIndex].total - ts[c.dataIndex].wrong}/${ts[c.dataIndex].total} doğru` } } } } }
+      : { type: 'doughnut', data: { labels: lab, datasets: [{ data: ts.map(t => t.total), backgroundColor: pal, borderColor: cvar('--s1'), borderWidth: 3 }] },
+          options: { responsive: true, maintainAspectRatio: false, cutout: '58%', plugins: { legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8 } }, tooltip: { callbacks: { label: c => `${c.raw} soru · başarı %${pct[c.dataIndex]}` } } } } });
+  }
+}
+function redrawCharts() {
+  Object.keys(anSrc).forEach(p => { const el = $('an-' + p); if (!el || !el.offsetParent) return; const src = anSrc[p]; el.outerHTML = analyticsHTML(p); drawAnalytics(p, src); });
+}
+const setRange = v => { anRange = v; redrawCharts(); };
+const setTopicMode = v => { anTopic = v; redrawCharts(); };
+const _at = applyTheme; // tema değişince grafik renkleri de güncellensin
+applyTheme = function (t) { _at(t); setTimeout(redrawCharts, 0); };

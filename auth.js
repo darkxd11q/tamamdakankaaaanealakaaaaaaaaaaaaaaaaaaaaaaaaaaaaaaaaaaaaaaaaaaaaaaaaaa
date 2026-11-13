@@ -7,13 +7,31 @@ const check = (pw, u) => crypto.timingSafeEqual(crypto.scryptSync(pw, u.salt, 64
 const pub = u => ({ id: u.id, username: u.username, role: u.role, theme: u.theme || 'amber', goal: u.goal || 0, createdAt: u.createdAt, lastLogin: u.lastLogin || null });
 
 /* ================= DEPOLAMA: Supabase (varsa) ya da yerel dosya ================= */
-const SB_URL = clean(process.env.SUPABASE_URL).replace(/\/+$/, ''), SB_KEY = clean(process.env.SUPABASE_SERVICE_KEY);
+// Proje adresi: yanlışlıkla yapıştırılan "/rest/v1" gibi ekleri temizle
+const SB_URL = clean(process.env.SUPABASE_URL).replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, ''), SB_KEY = clean(process.env.SUPABASE_SERVICE_KEY);
 const useSb = !!(SB_URL && SB_KEY);
+
+// Supabase anahtar türleri:
+//  - Yeni format : sb_secret_...      (sunucu için GİZLİ anahtar)  | sb_publishable_... (herkese açık, burada KULLANILAMAZ)
+//  - Eski format : JWT (eyJ...) rolü "service_role" (gizli)         | "anon" (herkese açık, KULLANILAMAZ)
+function classifyKey(k) {
+  if (/^sb_secret_/.test(k)) return { kind: 'secret', ok: true, jwt: false };
+  if (/^sb_publishable_/.test(k)) return { kind: 'publishable', ok: false, jwt: false };
+  if (/^eyJ[\w-]+\.[\w-]+\.[\w-]*$/.test(k)) {
+    try {
+      const role = JSON.parse(Buffer.from(k.split('.')[1], 'base64url').toString()).role;
+      return { kind: 'legacy-' + role, ok: role === 'service_role', jwt: true };
+    } catch { return { kind: 'legacy-unknown', ok: true, jwt: true }; }
+  }
+  return { kind: 'unknown', ok: true, jwt: false }; // bilinmeyen/yeni biçim: açılış kontrolü gerçek istekle doğrular
+}
+const KEY_INFO = useSb ? classifyKey(SB_KEY) : null;
 let store;
 
 if (useSb) {
+  // Yeni sb_secret_ anahtarları JWT değildir: yalnızca apikey başlığıyla gönderilir. Eski JWT anahtarlar ek olarak Bearer ister.
   const H = { apikey: SB_KEY, 'Content-Type': 'application/json' };
-  if (SB_KEY.startsWith('eyJ')) H.Authorization = 'Bearer ' + SB_KEY; // eski JWT anahtarlar; yeni sb_secret_ anahtarlar sadece apikey ister
+  if (KEY_INFO.jwt) H.Authorization = 'Bearer ' + SB_KEY;
   const sb = async (method, table, q = '', body, prefer = 'return=representation') => {
     const r = await fetch(`${SB_URL}/rest/v1/${table}${q}`, { method, headers: { ...H, Prefer: prefer }, body: body === undefined ? undefined : JSON.stringify(body) });
     if (!r.ok) throw new Error(`Supabase (${table}) HTTP ${r.status}: ${(await r.text()).slice(0, 180)}`);
@@ -22,7 +40,22 @@ if (useSb) {
   const uFrom = r => r && ({ id: r.id, username: r.username, role: r.role, salt: r.salt, hash: r.hash, theme: r.theme, goal: r.goal, createdAt: Number(r.created_at), lastLogin: r.last_login == null ? null : Number(r.last_login) });
   const uTo = u => ({ id: u.id, username: u.username, role: u.role, salt: u.salt, hash: u.hash, theme: u.theme || 'amber', goal: u.goal || 0, created_at: u.createdAt, last_login: u.lastLogin || null });
   const e = encodeURIComponent;
+  const preflight = async () => {
+    if (!KEY_INFO.ok) throw new Error(['publishable', 'legacy-anon'].includes(KEY_INFO.kind)
+      ? 'SUPABASE_SERVICE_KEY olarak HERKESE AÇIK (publishable/anon) anahtar girilmiş. Project Settings > API Keys bölümündeki GİZLİ "secret" (sb_secret_...) veya "service_role" anahtarını kullan.'
+      : `SUPABASE_SERVICE_KEY geçersiz görünüyor (${KEY_INFO.kind}). Gizli "secret" veya "service_role" anahtarı gerekli.`);
+    try { const u = new URL(SB_URL); if (u.protocol !== 'https:' && !/^(localhost|127\.0\.0\.1)$/.test(u.hostname)) throw 0; }
+    catch { throw new Error('SUPABASE_URL geçersiz. Örnek: https://proje-kodun.supabase.co'); }
+    if (KEY_INFO.kind === 'unknown') console.warn('⚠️  Supabase anahtarı bilinen biçimlerden biri değil; bağlantı deneniyor…');
+    let r;
+    try { r = await fetch(`${SB_URL}/rest/v1/users?select=id&limit=1`, { headers: H }); }
+    catch { throw new Error('Supabase\'e ulaşılamadı. SUPABASE_URL adresini ve internet bağlantısını kontrol et.'); }
+    if (r.status === 401 || r.status === 403) throw new Error(`Supabase anahtarı reddedildi (HTTP ${r.status}). Anahtarın bu projeye ait GİZLİ anahtar olduğundan emin ol.`);
+    if (r.status === 404) throw new Error('Supabase tabloları bulunamadı. supabase.sql dosyasını SQL Editor\'de çalıştır.');
+    if (!r.ok) throw new Error(`Supabase kontrolü başarısız (HTTP ${r.status}).`);
+  };
   store = {
+    preflight,
     userByName: async n => uFrom((await sb('GET', 'users', `?username=eq.${e(n)}&limit=1`))[0]),
     userById: async id => uFrom((await sb('GET', 'users', `?id=eq.${e(id)}&limit=1`))[0]),
     users: async () => (await sb('GET', 'users', '?order=created_at.asc')).map(uFrom),
@@ -84,11 +117,12 @@ if (useSb) {
 const AU = (process.env.SITE_USER || 'admin').trim().toLowerCase(), AP = process.env.SITE_PASS || '123456';
 if (AP === '123456') console.warn('⚠️  SITE_PASS varsayılan! .env dosyasında değiştirin.');
 const ready = (async () => {
+  await store.preflight?.(); // Supabase anahtarı/URL/tablolar açılışta doğrulanır
   let a = await store.userByName(AU);
   if (!a) a = { id: rid(), username: AU, createdAt: Date.now() };
   Object.assign(a, { role: 'admin' }, mkHash(AP));
   await store.saveUser(a);
-  console.log(`💾 Depolama: ${useSb ? 'Supabase' : 'yerel dosya (data/) — kalıcı olması için Supabase bağlayın'}`);
+  console.log(`💾 Depolama: ${useSb ? 'Supabase (' + KEY_INFO.kind + ' anahtarı)' : 'yerel dosya (data/) — kalıcı olması için Supabase bağlayın'}`);
 })();
 ready.catch(e => console.error('❌ Depolama başlatılamadı:', e.message));
 
