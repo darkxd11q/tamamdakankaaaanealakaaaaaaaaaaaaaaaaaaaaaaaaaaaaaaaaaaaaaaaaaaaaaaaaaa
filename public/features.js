@@ -88,7 +88,7 @@ function newCourse() {
   state.meta.courses.push(c); saveData('meta'); fillCourseSel(); return c;
 }
 function fillCourseSel() {
-  const o = '<option value="">Ders yok</option>' + (state.meta.courses || []).map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  const o = '<option value="">Otomatik algıla</option><option value="none">Ders yok</option>' + (state.meta.courses || []).map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
   ['course-sel', 'ez-course'].forEach(id => { const e = $(id); if (e) { const v = e.value; e.innerHTML = o; e.value = v; } });
 }
 function delCourse(id) {
@@ -217,7 +217,7 @@ function renderEzber() {
   const kn = d => d.cards.filter(c => c.known).length;
   v.innerHTML = `<form class="card stack" onsubmit="genDeck(event)"><div><h3 style="font-size:16px">Ezber destesi oluştur</h3><p class="muted">Bir konu yaz; yapay zekâ ezberlemen gereken bilgileri kısa kartlara ve hafıza ipuçlarına çevirsin.</p></div>
   <div class="g2"><div><label class="f" for="ez-topic">Konu</label><input id="ez-topic" placeholder="Örn: Kurtuluş Savaşı cepheleri ve tarihleri" required></div>
-  <div class="g2" style="gap:12px"><div><label class="f" for="ez-n">Kart sayısı</label><select id="ez-n"><option>10</option><option selected>15</option><option>20</option><option>30</option></select></div><div><label class="f" for="ez-course">Ders</label><select id="ez-course"></select></div></div></div>
+  <div class="g2" style="gap:12px"><div><label class="f" for="ez-n">Kart sayısı</label><select id="ez-n"><option>10</option><option selected>15</option><option>20</option><option>30</option></select></div><div><label class="f" for="ez-course">Ders</label><div class="row" style="gap:6px"><select id="ez-course"></select><button type="button" class="btn" style="flex-shrink:0" onclick="const c=newCourse();if(c)$('ez-course').value=c.id">+ Ders</button></div></div></div></div>
   <details><summary class="muted" style="cursor:pointer">Kendi notlarımdan üret (isteğe bağlı)</summary><textarea id="ez-mat" rows="5" style="margin-top:10px" placeholder="Notlarını yapıştır; kartlar sadece bunlardan çıkarılır."></textarea></details>
   <div class="row" style="justify-content:flex-end"><button class="btn btn-a" id="ez-go"><i class="fa-solid fa-layer-group"></i> Kartları hazırla</button></div></form>
   <div class="g3">${state.decks.map(d => { const k = kn(d), p = Math.round(k / d.cards.length * 100), c = courseOf(d.course); return `<div class="card lift deck"><div class="row sp">${c ? `<span class="chip" style="color:${c.color}">${esc(c.name)}</span>` : '<span></span>'}<span class="muted">${d.cards.length} kart</span></div><h4>${esc(d.name)}</h4><div class="pbar"><div style="width:${p}%;background:var(--vi)"></div></div><div class="muted">${k}/${d.cards.length} ezberlendi</div><div class="row" style="flex-wrap:wrap"><button class="btn btn-a" onclick="startStudy('${d.id}',false)">Kart çalış</button><button class="btn" onclick="startStudy('${d.id}',true)">Yazarak</button><button class="btn" onclick="delDeck('${d.id}')" aria-label="Sil"><i class="fa-solid fa-trash"></i></button></div></div>`; }).join('')}</div>`;
@@ -227,8 +227,10 @@ async function genDeck(e) {
   e.preventDefault(); const topic = $('ez-topic').value.trim(), b = $('ez-go'), html = b.innerHTML;
   b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Kartlar hazırlanıyor…';
   try {
-    const d = await api('/api/ezber', { topic, material: $('ez-mat').value, count: +$('ez-n').value });
-    const deck = { id: 'd' + Date.now().toString(36), name: d.title, topic, course: $('ez-course').value || null, tip: d.tip, created: Date.now(), cards: d.cards.map((c, i) => ({ id: i, f: c.f, b: c.b, m: c.m, known: false })) };
+    const csel = $('ez-course').value, d = await api('/api/ezber', { topic, material: $('ez-mat').value, count: +$('ez-n').value, courses: state.meta.courses.map(c => c.name) });
+    let course = csel && csel !== 'none' ? csel : null;
+    if (!csel && d.course) { const c = state.meta.courses.find(x => x.name.toLowerCase() === d.course.toLowerCase()); if (c) { course = c.id; toast('Ders algılandı: ' + c.name); } }
+    const deck = { id: 'd' + Date.now().toString(36), name: d.title, topic, course, tip: d.tip, created: Date.now(), cards: d.cards.map((c, i) => ({ id: i, f: c.f, b: c.b, m: c.m, known: false })) };
     state.decks.unshift(deck); saveData('decks'); toast('Deste hazır: ' + deck.name); startStudy(deck.id, false);
   } catch (x) { toast(x.message, 1); b.disabled = false; b.innerHTML = html; }
 }
@@ -284,5 +286,58 @@ const _en = enter;
 enter = async function (u) {
   await loadExtras(); await _en(u);
   if (!state.meta.ml) { state.meta.ml = {}; MISSIONS.forEach(m => (state.meta.ml[m.id] = lvlOf(m))); saveData('meta'); } // eski verideki seviyeler sessizce işlenir
-  maybeWeekly(); handleShareLink();
+  maybeWeekly();
+  if (!state.meta.profile) { window._onbDone = handleShareLink; openOnboarding(false); } else handleShareLink();
+};
+
+/* ---------- Sınıf / dönem profili ve ders listesi ---------- */
+const GRADES = [...Array(12)].map((_, i) => `${i + 1}. sınıf`).concat(['Mezun / YKS hazırlık', 'Üniversite']);
+const levelText = () => { const p = state.meta?.profile; return p && p.grade ? `${p.grade}${p.term ? ', ' + p.term + '. dönem' : ''}${p.field ? ', ' + p.field : ''}` : ''; };
+function qcLabel() {
+  const b = $('bonus')?.checked, d = $('duel')?.checked;
+  $('qc-val').textContent = `${$('qcount').value} soru${b ? ' + 1 bonus' : ''}`;
+  const on = [b && 'Bonus', d && 'Rakip'].filter(Boolean); $('extra-sum').textContent = on.length ? on.join(' · ') : 'Kapalı';
+}
+function openOnboarding(edit, done) {
+  let d = $('onb'); if (!d) { d = document.createElement('dialog'); d.id = 'onb'; document.body.appendChild(d); }
+  if (done) window._onbDone = done;
+  d.oncancel = e => { if (!edit) e.preventDefault(); }; // ilk girişte Esc ile kapanmaz
+  const p = state.meta.profile || {}, m = new Date().getMonth(), t = p.term || (m >= 8 || m === 0 ? '1' : '2');
+  d.innerHTML = `<h3 style="font-size:20px">${edit ? 'Sınıf ve dönem' : 'Hoş geldin! Seni tanıyalım 👋'}</h3><p class="muted" style="margin:6px 0 16px">Şu anki sınıfını ve dönemini seç; o sınıfın derslerini senin için hazırlayalım. Sınavların da bu derslere göre otomatik düzenlensin.</p>
+  <form onsubmit="onbSubmit(event)"><label class="f" for="onb-g">Sınıf</label><select id="onb-g">${GRADES.map(g => `<option ${g === p.grade ? 'selected' : ''}>${g}</option>`).join('')}</select>
+  <label class="f" for="onb-t" style="margin-top:14px">Dönem</label><select id="onb-t"><option value="1" ${t === '1' ? 'selected' : ''}>1. Dönem</option><option value="2" ${t === '2' ? 'selected' : ''}>2. Dönem</option></select>
+  <label class="f" for="onb-fld" style="margin-top:14px">Alan / bölüm (isteğe bağlı)</label><input id="onb-fld" value="${esc(p.field || '')}" placeholder="Örn: Sayısal, Sözel, Bilgisayar Mühendisliği">
+  <div class="row" style="justify-content:flex-end;margin-top:20px">${edit ? '<button type="button" class="btn" onclick="onbClose()">Vazgeç</button>' : '<button type="button" class="btn" onclick="onbSkip()">Şimdilik atla</button>'}<button class="btn btn-a">Devam</button></div></form>`;
+  d.showModal();
+}
+async function onbSubmit(e) {
+  e.preventDefault(); const g = $('onb-g').value, t = $('onb-t').value, f = $('onb-fld').value.trim(), d = $('onb');
+  state.meta.profile = { grade: g, term: t, field: f, at: Date.now() }; saveData('meta');
+  d.innerHTML = '<div style="text-align:center;padding:30px 10px"><i class="fa-solid fa-spinner fa-spin" style="font-size:26px;color:var(--am)"></i><p style="margin-top:14px">Dersler hazırlanıyor…</p></div>';
+  try {
+    const r = await api('/api/courses/suggest', { grade: g, term: t, field: f });
+    const have = new Set(state.meta.courses.map(c => c.name.toLowerCase())), list = r.courses.filter(n => !have.has(n.toLowerCase()));
+    d.innerHTML = `<h3 style="font-size:19px">${esc(g)} dersleri</h3><p class="muted" style="margin:6px 0 14px">${list.length ? 'Eklemek istediklerini işaretle. Sonradan ders ekleyip silebilirsin.' : 'Bu sınıfın dersleri zaten ekli.'}</p>
+    <div id="onb-list" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto">${list.map(n => `<label class="tg"><b>${esc(n)}</b><input type="checkbox" checked value="${esc(n)}"></label>`).join('')}</div>
+    <div class="row" style="justify-content:flex-end;margin-top:18px"><button class="btn btn-a" onclick="onbAdd()">${list.length ? 'Seçilenleri ekle' : 'Tamam'}</button></div>`;
+  } catch (x) {
+    d.innerHTML = `<h3 style="font-size:19px">Dersler getirilemedi</h3><p class="muted" style="margin:8px 0 16px">${esc(x.message)}<br>Bilgilerin kaydedildi; Hesabım sayfasından tekrar deneyebilirsin.</p><div class="row" style="justify-content:flex-end"><button class="btn btn-a" onclick="onbClose()">Tamam</button></div>`;
+  }
+}
+function onbAdd() {
+  const names = [...document.querySelectorAll('#onb-list input:checked')].map(i => i.value);
+  names.forEach(n => state.meta.courses.push({ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: n, color: COLORS[state.meta.courses.length % COLORS.length] }));
+  if (names.length) { saveData('meta'); fillCourseSel(); toast(`${names.length} ders eklendi.`); }
+  onbClose();
+}
+function onbSkip() { state.meta.profile = { skipped: true, at: Date.now() }; saveData('meta'); onbClose(); }
+function onbClose() {
+  const d = $('onb'); d.oncancel = null; d.close();
+  const f = window._onbDone; window._onbDone = null; f && f();
+  if (!$('view-archive').classList.contains('hidden')) renderArchive();
+}
+const _ra = renderAccount;
+renderAccount = async function () {
+  await _ra(); $('prof-card')?.remove();
+  $('view-account').insertAdjacentHTML('afterbegin', `<div class="card row sp" id="prof-card" style="flex-wrap:wrap"><div><h3 style="font-size:16px">Sınıf ve dönem</h3><p class="muted" style="margin-top:4px">${esc(levelText()) || 'Henüz belirlenmedi'}</p></div><button class="btn btn-a" onclick="openOnboarding(true)">${levelText() ? 'Değiştir / dersleri yenile' : 'Belirle ve dersleri getir'}</button></div>`);
 };

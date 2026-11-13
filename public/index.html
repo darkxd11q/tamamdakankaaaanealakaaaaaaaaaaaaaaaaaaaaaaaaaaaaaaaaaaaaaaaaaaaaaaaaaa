@@ -200,14 +200,12 @@ dialog{margin:auto;background:var(--s1);color:var(--tx);border:1px solid var(--l
         <div><label class="f">Zorluk</label><select id="diff"><option>Kolay</option><option selected>Orta</option><option>Zor</option><option value="LGS / YKS seviyesi">LGS / YKS seviyesi</option></select></div>
         <div><label class="f">Yapay zekâ düşünme süresi</label><select id="budget"><option value="10">Hızlı (10 sn)</option><option value="30" selected>Dengeli (30 sn)</option><option value="60">Derin (60 sn)</option></select></div>
       </div>
-      <div class="g4">
-        <label class="tg"><span><b style="color:var(--am)">+1 bonus soru</b><small>+15 puan</small></span><input type="checkbox" id="bonus" checked></label>
-        <label class="tg"><span><b style="color:var(--bl)">Tablo / şema</b><small>Görsel temelli soru</small></span><input type="checkbox" id="visual" checked></label>
-        <label class="tg"><span><b style="color:var(--tl)">Karışık sıra</b><small>Soruları karıştır</small></span><input type="checkbox" id="shuf"></label>
-        <label class="tg"><span><b style="color:var(--vi)">Sanal rakip</b><small>Skor karşılaştırma</small></span><input type="checkbox" id="duel" checked></label>
-      </div>
+      <details class="more"><summary><i class="fa-solid fa-sliders"></i> Ek seçenekler <span class="chip" id="extra-sum">Kapalı</span></summary><div class="g2">
+        <label class="tg"><span><b style="color:var(--am)">Bonus soru</b><small>Sınava ek +1 soru · doğruysa +15 puan</small></span><input type="checkbox" id="bonus" onchange="qcLabel()"></label>
+        <label class="tg"><span><b style="color:var(--vi)">Sanal rakip</b><small>Puanını bir rakiple karşılaştır</small></span><input type="checkbox" id="duel" onchange="qcLabel()"></label>
+      </div></details>
       <div class="g2">
-        <div><div class="row sp"><label class="f">Soru sayısı</label><b id="qc-val" style="color:var(--am);font-size:12px">6 soru</b></div><input type="range" id="qcount" min="3" max="15" value="6" style="padding:0;accent-color:var(--am)" oninput="qc.textContent=this.value+' soru'"></div>
+        <div><div class="row sp"><label class="f">Soru sayısı</label><b id="qc-val" style="color:var(--am);font-size:12px">6 soru</b></div><input type="range" id="qcount" min="3" max="15" value="6" style="padding:0;accent-color:var(--am)" oninput="qcLabel()"></div>
         <div><label class="f">Çözme süresi</label><select id="timer"><option value="0">Süresiz</option><option value="5">5 dakika</option><option value="10" selected>10 dakika</option><option value="20">20 dakika</option><option value="30">30 dakika</option></select></div>
       </div>
     </div>
@@ -318,7 +316,7 @@ $('pdf-in').onchange=e=>{addFiles(e.target.files);e.target.value=''};
 const agent=(n,s)=>{const c=$('ag'+n);c.classList.remove('active','done','err');if(s)c.classList.add(s)};
 async function startPipeline(){
   if(state.busy)return;
-  const cfg={course:$('course-sel')?.value||null,count:+$('qcount').value,type:$('qtype').value,optionCount:optCount,difficulty:$('diff').value,budget:$('budget').value,bonus:$('bonus').checked,visual:$('visual').checked,shuf:$('shuf').checked,duel:$('duel').checked,timer:+$('timer').value};
+  const csel=$('course-sel')?.value||'';const cfg={course:csel&&csel!=='none'?csel:null,autoCourse:!csel,count:+$('qcount').value,type:$('qtype').value,optionCount:optCount,difficulty:$('diff').value,budget:$('budget').value,bonus:$('bonus').checked,duel:$('duel').checked,timer:+$('timer').value};
   const notes=$('notes').value.trim();
   if(!notes&&!state.pdfs.length)return toast('Önce bir PDF yükle veya not yaz.',1);
   state.busy=true;$('start').disabled=true;panel('pipeline');[1,2,3,4].forEach(n=>agent(n));$('logs').innerHTML='';
@@ -339,16 +337,17 @@ async function startPipeline(){
     const a1=await api('/api/agent1-analyst',{text});
     state.summary=a1.result;log(a1.warning?'Gemini yanıt vermedi, ham metin kullanılıyor.':'Analiz tamamlandı ('+a1.model+').');agent(1,'done');
     step=2;agent(2,'active');log('Ajan 2 konu haritasını çıkarıyor…');
-    const a2=await api('/api/agent2-scenario',{summary:a1.result});
+    const a2=await api('/api/agent2-scenario',{summary:a1.result,courses:(state.meta?.courses||[]).map(c=>c.name)});
+    if(cfg.autoCourse&&a2.course){const c=state.meta.courses.find(x=>x.name.toLowerCase()===a2.course.toLowerCase());if(c){cfg.course=c.id;log('Ders algılandı: '+c.name)}}
     log(`Başlık: "${a2.title}"${a2.topics.length?' · '+a2.topics.length+' konu':''}`);agent(2,'done');
     step=3;agent(3,'active');log(`Ajan 3 ${cfg.count} soru üretiyor (${cfg.difficulty})…`);
-    const a3=await api('/api/agent3-generator',{summary:a1.result,title:a2.title,topics:a2.topics,count:cfg.count,type:cfg.type,optionCount:cfg.optionCount,difficulty:cfg.difficulty,bonus:cfg.bonus,visual:cfg.visual,budget:cfg.budget});
+    const a3=await api('/api/agent3-generator',{summary:a1.result,title:a2.title,topics:a2.topics,count:cfg.count,type:cfg.type,optionCount:cfg.optionCount,difficulty:cfg.difficulty,bonus:cfg.bonus,level:typeof levelText==='function'?levelText():'',budget:cfg.budget});
     log(`Sorular hazır (${a3.model}${a3.attempts>1?', '+a3.attempts+'. denemede':''}).`);agent(3,'done');
     let quiz=a3.quiz;
     step=4;agent(4,'active');log('Ajan 4 cevap anahtarını denetliyor…');
     try{const a4=await api('/api/agent4-evaluator',{mode:'verify',quiz,summary:a1.result});quiz=a4.quiz;log(a4.fixed?`${a4.fixed} cevap anahtarı düzeltildi.`:'Cevap anahtarı doğrulandı.');agent(4,'done')}
     catch(e){log('Denetim atlandı: '+e.message);agent(4,'done')}
-    if(cfg.shuf){quiz.questions.sort(()=>Math.random()-.5);}
+    {const nb=quiz.questions.filter(q=>!q.isBonus).sort(()=>Math.random()-.5);quiz.questions=[...nb,...quiz.questions.filter(q=>q.isBonus)]}
     setTimeout(()=>openQuiz(quiz,cfg),600);
   }catch(e){
     if(step)agent(step,'err');log('HATA: '+e.message);toast(e.message,1);
