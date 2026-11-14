@@ -3,11 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0d1220">
 <script>document.documentElement.dataset.theme=localStorage.getItem('qc_theme')||'amber'</script>
 <title>QuizCraft AI Pro</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<!-- Oturum çerezi varsa tüm açılış verisi (kullanıcı, arşiv, ezber, ayarlar) sayfa yüklenirken PARALEL istenir -->
+<script>window.__boot=fetch('/api/bootstrap',{cache:'no-store'}).then(async r=>({status:r.status,data:await r.json().catch(()=>({}))})).catch(()=>null)</script>
+<link rel="stylesheet" href="login.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap"></noscript>
 <style>
 :root{--bg:#0d1220;--s1:#151c30;--s2:#1c2540;--ln:rgba(255,255,255,.08);--tx:#eef1f8;--mu:#8f9bb8;--am:#f0b45a;--tl:#4fd1b5;--ro:#f0708a;--bl:#6ea8fe;--vi:#a995f5;--amr:240,180,90;--amh:#f6c37b;--hv:#26325a;--on:#1a1405}
 :root[data-theme=purple]{--bg:#110b22;--s1:#1a1236;--s2:#2a1f55;--ln:rgba(200,180,255,.11);--tx:#f1ecff;--mu:#a69bc9;--am:#b388ff;--amr:179,136,255;--amh:#c9a6ff;--hv:#3a2c75;--on:#12062b;--tl:#5eead4;--bl:#8ab4ff;--vi:#f0abfc;--ro:#fb7185}
@@ -99,8 +104,6 @@ body.boot aside,body.boot main,body.locked aside,body.locked main{display:none}
 #auth{position:fixed;inset:0;z-index:100;display:none;grid-template-columns:1.1fr 1fr;background:var(--bg)}
 body.locked #auth{display:grid}
 .au-l{background:var(--s1);border-right:1px solid var(--ln);padding:56px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
-.au-l::before,.au-l::after{content:"";position:absolute;border-radius:50%;border:1px solid var(--ln);right:-140px;bottom:-140px;width:420px;height:420px;animation:spin 30s linear infinite}
-.au-l::after{width:620px;height:620px;right:-240px;bottom:-240px;border-color:rgba(var(--amr),.3);animation-duration:50s;animation-direction:reverse}
 @keyframes spin{to{transform:rotate(360deg)}}
 .au-l h2{font-size:42px;line-height:1.1;max-width:420px}.au-l li{list-style:none;color:var(--mu);font-size:14px;margin-top:12px}.au-l li i{color:var(--am);width:22px}
 .au-r{display:grid;place-items:center;padding:24px}
@@ -118,16 +121,25 @@ dialog{margin:auto;background:var(--s1);color:var(--tx);border:1px solid var(--l
 <link rel="stylesheet" href="features.css">
 </head>
 <body class="boot">
+<div id="splash" aria-hidden="true"><div class="sp-mark"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><circle cx="14" cy="14" r="5"/><circle cx="35" cy="12" r="4"/><circle cx="24" cy="35" r="6"/><path d="M18 17l4 12M31 15l-5 14M19 13l12-1"/></svg></div><b>QuizCraft AI Pro</b><div class="sp-bar"><i></i></div></div>
 <div id="auth">
-  <div class="au-l"><div class="brand" style="border:0;padding:0"><div class="brand-i"><i class="fa-solid fa-brain"></i></div><h1 style="font-size:20px">QuizCraft AI Pro</h1></div>
-    <div><h2>Notların bir sınava dönüşsün.</h2><ul style="margin-top:22px"><li><i class="fa-solid fa-file-pdf"></i>PDF ve notlarından otomatik sorular</li><li><i class="fa-solid fa-book-bookmark"></i>Yanlışların hata defterinde birikir</li><li><i class="fa-solid fa-chart-line"></i>Gelişimin her gün takip edilir</li></ul></div><span></span></div>
-  <div class="au-r"><form class="au-f" onsubmit="doLogin(event)">
+  <canvas id="au-canvas" aria-hidden="true"></canvas>
+  <div class="au-l">
+    <div class="au-brand"><div class="brand-i"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><circle cx="14" cy="14" r="5"/><circle cx="35" cy="12" r="4"/><circle cx="24" cy="35" r="6"/><path d="M18 17l4 12M31 15l-5 14M19 13l12-1"/></svg></div><h1>QuizCraft AI Pro</h1></div>
+    <div class="au-hero"><h2>Senin <span class="au-rot" id="au-rot">notların</span> bir sınava dönüşsün.</h2><p>Yapay zekâ ile soru üret, ezber yap, hatalarından öğren ve gelişimini grafiklerle takip et.</p></div>
+    <div class="au-cards" aria-hidden="true">
+      <div class="au-c c1"><small>Soru 3 · Fotosentez</small><b>Bitkiler besini nasıl üretir?</b><div class="au-o"><i></i>Solunumla</div><div class="au-o ok"><i></i>Işık enerjisiyle</div></div>
+      <div class="au-c c2"><span class="au-dot"></span>7 günlük seri</div>
+      <div class="au-c c3"><span class="num">92</span><span>not</span><em>↑ +8</em></div>
+    </div>
+  </div>
+  <div class="au-r"><form class="au-f" id="au-form" onsubmit="doLogin(event)">
     <h3>Tekrar hoş geldin</h3><p class="muted" style="margin-top:6px">Yöneticinin verdiği kullanıcı adı ve şifreyle giriş yap.</p>
     <label class="f" for="lg-user">Kullanıcı adı</label><input id="lg-user" autocomplete="username" required>
     <label class="f" for="lg-pass">Şifre</label><div class="pw"><input id="lg-pass" type="password" autocomplete="current-password" required><button type="button" onclick="const p=$('lg-pass');p.type=p.type==='password'?'text':'password'" aria-label="Şifreyi göster"><i class="fa-solid fa-eye"></i></button></div>
     <label class="row" style="margin-top:16px;font-size:13px;color:var(--mu);cursor:pointer"><input type="checkbox" id="lg-rem" checked style="width:16px;height:16px;accent-color:var(--am)"> Bu cihazda beni hatırla</label>
     <div id="lg-err" role="alert"></div>
-    <button class="btn btn-a" id="lg-btn" style="width:100%;padding:14px;margin-top:6px">Giriş yap</button>
+    <button class="btn btn-a" id="lg-btn"><span class="bt">Giriş yap</span><i class="sp"></i></button>
   </form></div>
 </div>
 <dialog id="goal-dlg"><form onsubmit="saveGoal(event)"><h3 style="font-size:18px">Günlük hedefin</h3><p class="muted" style="margin:6px 0 16px">Her gün kaç soru çözmek istiyorsun?</p>
@@ -282,7 +294,7 @@ async function api(path,body,method){
   if(!r.ok||d.error)throw new Error(d.error||('Sunucu hatası '+r.status));
   return d;
 }
-let saveT;const save=()=>{badges();clearTimeout(saveT);saveT=setTimeout(()=>api('/api/archive',{archive:state.archive},'PUT').catch(e=>toast('Arşiv kaydedilemedi: '+e.message,1)),400)};
+let saveT;const save=()=>{window.__archDirty=true;badges();clearTimeout(saveT);saveT=setTimeout(()=>api('/api/archive',{archive:state.archive},'PUT').then(()=>{window.__archDirty=false}).catch(e=>toast('Arşiv kaydedilemedi: '+e.message,1)),400)};
 
 /* ---- Gezinme ---- */
 const TITLES={dashboard:['Ana Panel','Bugünkü ilerlemen ve hızlı işlemler'],create:['Sınav Oluştur','Materyalini ekle, ayarları seç, sınavın hazırlansın'],archive:['Arşiv ve Analiz','Çözdüğün sınavlar ve sonuçları'],account:['Hesabım','Şifre ve açık oturumlar'],admin:['Yönetici','Kullanıcı hesaplarını yönet'],mistakes:['Hata Defteri','Yanlış yaptığın soruları tekrar et']};
@@ -478,12 +490,13 @@ function pomoToggle(){if(pomo.id){clearInterval(pomo.id);pomo.id=null}else pomo.
 function applyTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem('qc_theme',t);document.querySelectorAll('.sw').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
 function setTheme(t){applyTheme(t);if(state.user){state.user.theme=t;api('/api/me/prefs',{theme:t},'PUT').catch(()=>{})}}
 function showLogin(){state.user=null;document.body.className='locked';$('lg-pass').value='';setTimeout(()=>$('lg-user').focus(),50)}
-async function doLogin(e){e.preventDefault();const b=$('lg-btn');b.disabled=true;$('lg-err').textContent='';
-  try{const d=await api('/api/auth/login',{username:$('lg-user').value,password:$('lg-pass').value,remember:$('lg-rem').checked});await enter(d.user)}
-  catch(x){$('lg-err').textContent=x.message}finally{b.disabled=false}}
-async function enter(u){state.user=u;applyTheme(u.theme||'amber');state.archive=(await api('/api/archive')).archive||[];
+async function doLogin(e){e.preventDefault();const b=$('lg-btn');b.disabled=true;b.classList.add('loading');$('lg-err').textContent='';
+  try{const d=await api('/api/auth/login',{username:$('lg-user').value,password:$('lg-pass').value,remember:$('lg-rem').checked});
+    window.__bs=d;window.auOk&&auOk(d.user.username);await enter(d.user)}
+  catch(x){$('lg-err').textContent=x.message;window.auFail&&auFail()}finally{b.disabled=false;b.classList.remove('loading')}}
+async function enter(u){state.user=u;applyTheme(u.theme||'amber');state.archive=window.__bs?.archive||(await api('/api/archive')).archive||[];
   document.body.className='';$('u-name').textContent=u.username;$('nav-admin').classList.toggle('hidden',u.role!=='admin');badges();switchTab('dashboard');
-  fetch('/api/health').then(r=>r.json()).then(h=>{const ok=h.gemini&&h.groq;$('ai-dot').className='dot '+(ok?'ok':'bad');$('ai-status').textContent=ok?'Yapay zekâ bağlı':'API anahtarı eksik';if(!ok)toast('Sunucuda '+[!h.gemini&&'GEMINI_API_KEY',!h.groq&&'GROQ_API_KEY'].filter(Boolean).join(' ve ')+' tanımlı değil.',1)}).catch(()=>{$('ai-dot').className='dot bad';$('ai-status').textContent='Sunucuya ulaşılamıyor'})}
+  (window.__bs?.ai?Promise.resolve(window.__bs.ai):fetch('/api/health').then(r=>r.json())).then(h=>{const ok=h.gemini&&h.groq;$('ai-dot').className='dot '+(ok?'ok':'bad');$('ai-status').textContent=ok?'Yapay zekâ bağlı':'API anahtarı eksik';if(!ok)toast('Sunucuda '+[!h.gemini&&'GEMINI_API_KEY',!h.groq&&'GROQ_API_KEY'].filter(Boolean).join(' ve ')+' tanımlı değil.',1)}).catch(()=>{$('ai-dot').className='dot bad';$('ai-status').textContent='Sunucuya ulaşılamıyor'})}
 async function logout(){await api('/api/auth/logout',{}).catch(()=>{});location.reload()}
 const fd=t=>t?new Date(t).toLocaleDateString('tr-TR'):'–';
 function genPw(){const c='abcdefghjkmnpqrstuvwxyz23456789';return Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>c[b%c.length]).join('')}
@@ -502,9 +515,14 @@ async function revokeOthers(){if(!confirm('Bu cihaz dışındaki tüm oturumlar 
 
 /* ---- Başlangıç ---- */
 applyTheme(localStorage.getItem('qc_theme')||'amber');pomoDraw();
-window.addEventListener('load',async()=>{try{await enter((await api('/api/me')).user)}catch{showLogin()}});
+window.addEventListener('DOMContentLoaded',async()=>{
+  const b=await (window.__boot||null); // sayfa yüklenirken başlayan istek (çerez geçerliyse tek istekte her şey)
+  if(b&&b.status===200&&b.data.user){window.__bs=b.data;try{await enter(b.data.user);return}catch(e){}}
+  showLogin();
+  if(!b||b.status>=500)$('lg-err').textContent='Sunucuya ulaşılamadı. Birkaç saniye sonra sayfayı yenile.';
+});
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="features.js"></script>
+<script defer src="login.js"></script>
+<script defer src="features.js"></script>
 </body>
 </html>

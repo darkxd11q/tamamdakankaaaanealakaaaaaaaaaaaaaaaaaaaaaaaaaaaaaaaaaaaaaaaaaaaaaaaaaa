@@ -11,9 +11,18 @@ const COLORS = ['#f0b45a', '#4fd1b5', '#6ea8fe', '#f0708a', '#a995f5', '#fbbf24'
 const saveTm = {};
 function saveData(k) {
   if (state.noSave) return;
-  clearTimeout(saveTm[k]);
-  saveTm[k] = setTimeout(() => api('/api/data/' + k, { data: state[k] }, 'PUT').catch(e => toast('Kaydedilemedi: ' + e.message, 1)), 500);
+  clearTimeout(saveTm[k]); dirty.add(k);
+  saveTm[k] = setTimeout(() => { dirty.delete(k); api('/api/data/' + k, { data: state[k] }, 'PUT').catch(e => toast('Kaydedilemedi: ' + e.message, 1)); }, 500);
 }
+// Kayıtlar 0,5 sn geciktirilerek toplu gönderilir; sayfa kapanırken/yenilenirken bekleyenler hemen gönderilir (veri kaybolmaz)
+const dirty = new Set();
+function flushSaves() {
+  const put = (url, body) => { const s = JSON.stringify(body); return fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: s, keepalive: s.length < 60000 }).catch(() => {}); };
+  dirty.forEach(k => { clearTimeout(saveTm[k]); put('/api/data/' + k, { data: state[k] }); }); dirty.clear();
+  if (window.__archDirty) { clearTimeout(saveT); put('/api/archive', { archive: state.archive }); window.__archDirty = false; }
+}
+addEventListener('pagehide', flushSaves);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSaves(); });
 const cnt = k => state.meta.counters?.[k] || 0;
 function addCounter(k, n = 1) { const c = state.meta.counters || (state.meta.counters = {}); c[k] = (c[k] || 0) + n; saveData('meta'); checkMissions(); }
 
@@ -274,7 +283,7 @@ document.addEventListener('keydown', e => {
 
 /* ---------- Mevcut fonksiyonlara bağlantı ---------- */
 async function loadExtras() {
-  const g = async (k, d) => (await api('/api/data/' + k)).data ?? d;
+  const bs = window.__bs, g = async (k, d) => (bs ? bs[k] : (await api('/api/data/' + k)).data) ?? d; // açılış paketi varsa ağa gitmez
   try { [state.decks, state.srs, state.meta] = await Promise.all([g('decks', []), g('srs', {}), g('meta', {})]); state.noSave = false; }
   catch (e) { state.noSave = true; toast('Ezber/görev verileri yüklenemedi, sayfayı yenile. (' + e.message + ')', 1); }
   const m = state.meta; m.courses = m.courses || []; m.counters = m.counters || {};
@@ -291,7 +300,7 @@ const _rd = renderDash;
 renderDash = function () { _rd(); renderDashExtras(); };
 const _en = enter;
 enter = async function (u) {
-  await loadExtras(); await _en(u);
+  await loadExtras(); await _en(u); window.__bs = null;
   if (!state.meta.ml) { state.meta.ml = {}; MISSIONS.forEach(m => (state.meta.ml[m.id] = lvlOf(m))); saveData('meta'); } // eski verideki seviyeler sessizce işlenir
   maybeWeekly();
   if (!state.meta.profile) { window._onbDone = handleShareLink; openOnboarding(false); } else handleShareLink();
@@ -415,6 +424,11 @@ function renderPdfs() {
 }
 
 /* ================= Başarı grafikleri (Chart.js) ================= */
+const loadScript = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('yüklenemedi')); document.head.appendChild(s); });
+let chartP; const loadChart = () => chartP || (chartP = loadScript('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js').catch(e => { chartP = null; throw e; }));
+// Konfeti de ilk kullanımda yüklenir; yüklenene kadar çağrılar bekletilir
+window.confetti = o => loadScript('https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js').then(() => { if (!window.confetti.lazy) window.confetti(o); }).catch(() => {});
+window.confetti.lazy = true;
 let anRange = '30', anTopic = 'bar';
 const anSrc = {}, anCh = {};
 const cvar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -431,7 +445,12 @@ function drawAnalytics(p, all) {
   ['line', 'topic'].forEach(k => { anCh[p + k]?.destroy(); delete anCh[p + k]; });
   if (!$('an-' + p)) return;
   const empty = (id, msg) => { $(id).innerHTML = `<p class="muted" style="padding:80px 10px;text-align:center">${msg}</p>`; };
-  if (!window.Chart) { empty(`an-${p}-lb`, 'Grafik kütüphanesi yüklenemedi.'); empty(`an-${p}-tb`, 'İnternet bağlantını kontrol et.'); return; }
+  if (!window.Chart) { // Chart.js ilk ihtiyaçta yüklenir (açılışı yavaşlatmaz)
+    empty(`an-${p}-lb`, 'Grafikler yükleniyor…'); empty(`an-${p}-tb`, ' ');
+    loadChart().then(() => { const el = $('an-' + p); if (el) { el.outerHTML = analyticsHTML(p); drawAnalytics(p, all); } },
+      () => { empty(`an-${p}-lb`, 'Grafik kütüphanesi yüklenemedi.'); empty(`an-${p}-tb`, 'İnternet bağlantını kontrol et.'); });
+    return;
+  }
   const items = anItems(all).slice().sort((a, b) => (a.ts || a.id) - (b.ts || b.id));
   Chart.defaults.color = cvar('--mu'); Chart.defaults.font.family = 'Manrope, sans-serif'; Chart.defaults.borderColor = cvar('--ln');
   const am = cvar('--am'), tl = cvar('--tl'), ro = cvar('--ro'), grid = { color: cvar('--ln') };

@@ -1,0 +1,57 @@
+/* Açılış ekranı + animasyonlu giriş ekranı */
+#splash{position:fixed;inset:0;z-index:130;display:none;place-content:center;justify-items:center;gap:18px;background:var(--bg)}
+body.boot #splash{display:grid}
+.sp-mark{width:80px;height:80px;border-radius:24px;background:var(--am);color:var(--on);display:grid;place-items:center;animation:spPulse 1.5s ease-in-out infinite}
+.sp-mark svg,.brand-i svg{width:60%;height:60%}
+#splash b{font:700 18px 'Bricolage Grotesque',system-ui,sans-serif}
+.sp-bar{width:150px;height:3px;border-radius:3px;background:var(--s2);overflow:hidden}
+.sp-bar i{display:block;width:40%;height:100%;border-radius:3px;background:var(--am);animation:spBar 1.1s ease-in-out infinite}
+@keyframes spPulse{50%{transform:scale(1.07);box-shadow:0 0 0 14px rgba(var(--amr),.12)}}
+@keyframes spBar{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
+
+#auth{overflow:hidden}
+#au-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.au-l::before,.au-l::after{display:none}
+.au-l,.au-r{position:relative;z-index:1}
+.au-l{background:color-mix(in srgb,var(--s1) 55%,transparent);backdrop-filter:blur(3px);padding:48px 56px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;border-right:1px solid var(--ln)}
+.au-brand{display:flex;align-items:center;gap:12px}.au-brand h1{font-size:19px}
+.au-hero h2{font-size:clamp(30px,3.3vw,46px);line-height:1.12;max-width:480px}
+.au-hero p{color:var(--mu);margin-top:16px;max-width:400px;line-height:1.7;font-size:14px}
+.au-rot{color:var(--am);display:inline-block;position:relative;transition:opacity .3s,transform .3s}
+.au-rot::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:3px;border-radius:3px;background:var(--am);opacity:.35}
+.au-rot.out{opacity:0;transform:translateY(10px)}
+.au-cards{position:relative;height:235px;max-width:440px}
+.au-c{position:absolute;background:var(--s2);border:1px solid var(--ln);border-radius:16px;padding:14px 16px;box-shadow:0 18px 40px -20px rgba(0,0,0,.7);animation:auFloat 6s ease-in-out infinite}
+.au-c small{display:block;color:var(--mu);font-size:11px;margin-bottom:6px}.au-c b{font-size:13px}
+.c1{left:0;top:0;width:262px;--r:-2deg}
+.c2{left:238px;top:78px;--r:3deg;animation-delay:-2s;display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700}
+.c3{left:36px;top:158px;--r:-1deg;animation-delay:-4s;display:flex;align-items:baseline;gap:10px;font-size:13px}
+.c3 .num{font:800 30px 'Bricolage Grotesque',sans-serif;color:var(--am)}.c3 em{font-style:normal;color:var(--tl);font-weight:700}
+.au-o{display:flex;align-items:center;gap:8px;margin-top:8px;padding:7px 10px;border-radius:9px;background:var(--bg);border:1px solid transparent;font-size:12px}
+.au-o i{width:12px;height:12px;border-radius:50%;border:2px solid var(--mu);flex-shrink:0}
+.au-o.ok{border-color:var(--tl)}.au-o.ok i{background:var(--tl);border-color:var(--tl);animation:auTick 3s ease-in-out infinite}
+.au-dot{width:9px;height:9px;border-radius:50%;background:var(--ro);animation:auPing 1.8s infinite}
+@keyframes auFloat{0%,100%{transform:translateY(0) rotate(var(--r,0deg))}50%{transform:translateY(-10px) rotate(var(--r,0deg))}}
+@keyframes auPing{0%{box-shadow:0 0 0 0 rgba(240,112,138,.6)}70%,100%{box-shadow:0 0 0 9px rgba(240,112,138,0)}}
+@keyframes auTick{50%{transform:scale(1.4)}}
+@keyframes auUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+.au-brand{animation:auUp .7s .05s both}.au-hero{animation:auUp .8s .15s both}.au-cards .au-c{animation-name:auUp,auFloat;animation-duration:.9s,6s;animation-delay:.3s,1.2s;animation-fill-mode:both,none;animation-iteration-count:1,infinite}
+.au-f{background:color-mix(in srgb,var(--s1) 90%,transparent);border:1px solid var(--ln);border-radius:24px;padding:38px 34px;backdrop-filter:blur(12px);box-shadow:0 40px 80px -40px rgba(0,0,0,.8)}
+.au-f>*{animation:auUp .65s cubic-bezier(.16,1,.3,1) both}
+.au-f input:not([type=checkbox]){padding:13px 14px;border-radius:12px}
+.au-f input:not([type=checkbox]):focus{border-color:var(--am);box-shadow:0 0 0 4px rgba(var(--amr),.16)}
+.au-f.shake{animation:auShake .45s}
+@keyframes auShake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+#lg-btn{position:relative;overflow:hidden;width:100%;padding:14px;margin-top:6px}
+#lg-btn .bt{transition:opacity .2s}
+#lg-btn .sp{position:absolute;width:18px;height:18px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;opacity:0;animation:auSpin .7s linear infinite;transition:opacity .2s}
+#lg-btn.loading .bt{opacity:0}#lg-btn.loading .sp{opacity:1}
+#lg-btn.loading,#lg-btn.ok{opacity:1!important}
+#lg-btn::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.4) 50%,transparent 70%);transform:translateX(-120%);transition:transform .7s}
+#lg-btn:hover::after{transform:translateX(120%)}
+#lg-btn.ok{background:var(--tl);color:#06251f}
+@keyframes auSpin{to{transform:rotate(360deg)}}
+/* giriş başarılı: ekran yumuşakça kaybolur ve altta hazır panel görünür */
+#auth.au-out{display:grid!important;pointer-events:none;animation:auOut .6s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes auOut{to{opacity:0;transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){#auth.au-out{display:none!important}}

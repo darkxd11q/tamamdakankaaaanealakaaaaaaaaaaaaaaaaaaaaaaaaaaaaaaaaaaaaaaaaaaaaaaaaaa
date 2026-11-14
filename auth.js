@@ -2,8 +2,9 @@ const crypto = require('crypto'), fs = require('fs'), path = require('path');
 const clean = v => (v || '').trim().replace(/^["']|["']$/g, '');
 const rid = () => crypto.randomBytes(8).toString('hex');
 const sha = t => crypto.createHash('sha256').update(t).digest('hex');
-const mkHash = (pw, salt = crypto.randomBytes(16).toString('hex')) => ({ salt, hash: crypto.scryptSync(pw, salt, 64).toString('hex') });
-const check = (pw, u) => crypto.timingSafeEqual(crypto.scryptSync(pw, u.salt, 64), Buffer.from(u.hash, 'hex'));
+const scrypt = require('util').promisify(crypto.scrypt); // iş parçacığı havuzunda çalışır, olay döngüsünü kilitlemez
+const mkHash = async (pw, salt = crypto.randomBytes(16).toString('hex')) => ({ salt, hash: (await scrypt(pw, salt, 64)).toString('hex') });
+const check = async (pw, u) => crypto.timingSafeEqual(await scrypt(pw, u.salt, 64), Buffer.from(u.hash, 'hex'));
 const pub = u => ({ id: u.id, username: u.username, role: u.role, theme: u.theme || 'amber', goal: u.goal || 0, createdAt: u.createdAt, lastLogin: u.lastLogin || null });
 
 /* ================= DEPOLAMA: Supabase (varsa) ya da yerel dosya ================= */
@@ -120,11 +121,33 @@ const ready = (async () => {
   await store.preflight?.(); // Supabase anahtarı/URL/tablolar açılışta doğrulanır
   let a = await store.userByName(AU);
   if (!a) a = { id: rid(), username: AU, createdAt: Date.now() };
-  Object.assign(a, { role: 'admin' }, mkHash(AP));
+  Object.assign(a, { role: 'admin' }, await mkHash(AP));
   await store.saveUser(a);
   console.log(`💾 Depolama: ${useSb ? 'Supabase (' + KEY_INFO.kind + ' anahtarı)' : 'yerel dosya (data/) — kalıcı olması için Supabase bağlayın'}`);
 })();
 ready.catch(e => console.error('❌ Depolama başlatılamadı:', e.message));
+
+// Oturum önbelleği: her istekte 2 veritabanı sorgusu yerine 60 sn'lik bellek kaydı kullanılır.
+// Çıkış, şifre değişimi, oturum kapatma ve kullanıcı silme işlemlerinde önbellek hemen temizlenir.
+const scache = new Map();
+for (const k of ['delSessions', 'delUser']) { const f = store[k]; store[k] = async (...a) => { scache.clear(); const r = await f(...a); scache.clear(); return r; }; }
+async function authUser(h) {
+  const c = scache.get(h);
+  if (c && c.until > Date.now() && c.exp > Date.now()) return c.user;
+  scache.delete(h);
+  const s = await store.session(h); if (!s) return null;
+  const user = await store.userById(s.uid); if (!user) return null;
+  scache.set(h, { user, exp: Number(s.exp), until: Date.now() + 60000 });
+  if (scache.size > 500) scache.delete(scache.keys().next().value);
+  return user;
+}
+const bg = fn => fn().catch(e => console.warn('arka plan işi:', e.message)); // yanıtı bekletmeyen işler
+const AI = () => ({ gemini: !!clean(process.env.GEMINI_API_KEY), groq: !!clean(process.env.GROQ_API_KEY) });
+// Siteyi açmak için gereken her şey TEK istekte ve paralel alınır
+const bootPayload = async u => {
+  const [archive, decks, srs, meta] = await Promise.all([store.archive(u.id), store.getData(u.id, 'decks'), store.getData(u.id, 'srs'), store.getData(u.id, 'meta')]);
+  return { user: pub(u), archive, decks, srs, meta, ai: AI() };
+};
 
 module.exports = app => {
   app.set('trust proxy', 1);
@@ -137,8 +160,8 @@ module.exports = app => {
     await ready;
     const tok = cookies(req).qc_session;
     if (tok) {
-      const h = sha(tok), s = await store.session(h);
-      if (s) { req.user = await store.userById(s.uid); req.sh = h; }
+      const h = sha(tok), u = await authUser(h);
+      if (u) { req.user = u; req.sh = h; }
     }
     if (req.path === '/auth/login') return next();
     if (!req.user) return res.status(401).json({ error: 'Oturum gerekli', auth: true });
@@ -150,22 +173,23 @@ module.exports = app => {
     const key = req.ip + '|' + name, f = fails.get(key);
     if (f && f.until > Date.now()) return res.status(429).json({ error: 'Çok fazla hatalı deneme. 5 dakika sonra tekrar dene.' });
     const u = await store.userByName(name);
-    if (!u || !check(pw, u)) {
+    if (!u || !(await check(pw, u))) {
       const n = (f?.n || 0) + 1;
       fails.set(key, { n, until: n >= 5 ? Date.now() + 300000 : 0 });
       return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı.' });
     }
     fails.delete(key);
     const token = crypto.randomBytes(32).toString('hex'), remember = req.body.remember !== false, ttl = (remember ? 365 : 1) * 864e5;
-    await store.cleanup();
-    const mine = await store.sessions(u.id);
-    for (const old of mine.slice(19)) await store.delSessions(u.id, { id: old.id }); // en fazla 20 cihaz
-    await store.addSession({ h: sha(token), id: rid(), uid: u.id, exp: Date.now() + ttl, created: Date.now(), ua: String(req.headers['user-agent'] || '').slice(0, 160) });
-    u.lastLogin = Date.now(); await store.saveUser(u);
+    u.lastLogin = Date.now();
+    // Oturum kaydı ve açılış verileri paralel alınır: giriş tek gidiş-dönüşte biter
+    const [payload] = await Promise.all([bootPayload(u), store.addSession({ h: sha(token), id: rid(), uid: u.id, exp: Date.now() + ttl, created: Date.now(), ua: String(req.headers['user-agent'] || '').slice(0, 160) })]);
     res.cookie('qc_session', token, { httpOnly: true, sameSite: 'lax', secure: req.secure, maxAge: remember ? ttl : undefined, path: '/' });
-    res.json({ user: pub(u) });
+    res.json(payload);
+    // Yanıttan sonra arka planda: son giriş zamanı, süresi dolan ve 20'den fazla oturumun temizliği
+    bg(async () => { await store.saveUser(u); await store.cleanup(); const mine = await store.sessions(u.id); for (const old of mine.slice(20)) await store.delSessions(u.id, { id: old.id }); });
   }));
 
+  app.get('/api/bootstrap', wrap(async (req, res) => res.json(await bootPayload(req.user))));
   app.get('/api/me', (req, res) => res.json({ user: pub(req.user) }));
   app.post('/api/auth/logout', wrap(async (req, res) => {
     const s = await store.session(req.sh); if (s) await store.delSessions(req.user.id, { id: s.id });
@@ -183,9 +207,9 @@ module.exports = app => {
   app.put('/api/me/password', wrap(async (req, res) => {
     if (req.user.role === 'admin') return res.status(400).json({ error: 'Yönetici şifresi .env dosyasındaki SITE_PASS ile belirlenir.' });
     const { current, password } = req.body || {};
-    if (!check(String(current || ''), req.user)) return res.status(401).json({ error: 'Mevcut şifre hatalı.' });
+    if (!(await check(String(current || ''), req.user))) return res.status(401).json({ error: 'Mevcut şifre hatalı.' });
     if (String(password || '').length < 4 || password.length > 100) return res.status(400).json({ error: 'Yeni şifre en az 4 karakter olmalı.' });
-    Object.assign(req.user, mkHash(password)); await store.saveUser(req.user);
+    Object.assign(req.user, await mkHash(password)); await store.saveUser(req.user);
     await store.delSessions(req.user.id, { exceptH: req.sh }); res.json({ ok: true });
   }));
 
@@ -248,14 +272,14 @@ module.exports = app => {
     if (!/^[a-z0-9ığüşöç._-]{3,24}$/.test(name)) return res.status(400).json({ error: 'Kullanıcı adı 3-24 karakter olmalı (harf, rakam, . _ -).' });
     if (pw.length < 4 || pw.length > 100) return res.status(400).json({ error: 'Şifre en az 4 karakter olmalı.' });
     if (await store.userByName(name)) return res.status(409).json({ error: 'Bu kullanıcı adı zaten var.' });
-    const u = { id: rid(), username: name, role: 'user', createdAt: Date.now(), ...mkHash(pw) };
+    const u = { id: rid(), username: name, role: 'user', createdAt: Date.now(), ...(await mkHash(pw)) };
     await store.saveUser(u); res.json({ user: pub(u) });
   }));
   app.put('/api/admin/users/:id/password', admin, wrap(async (req, res) => {
     const u = await store.userById(req.params.id), pw = String(req.body.password || '');
     if (!u || u.role === 'admin') return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
     if (pw.length < 4) return res.status(400).json({ error: 'Şifre en az 4 karakter olmalı.' });
-    Object.assign(u, mkHash(pw)); await store.saveUser(u); await store.delSessions(u.id); res.json({ ok: true });
+    Object.assign(u, await mkHash(pw)); await store.saveUser(u); await store.delSessions(u.id); res.json({ ok: true });
   }));
   app.delete('/api/admin/users/:id', admin, wrap(async (req, res) => {
     const u = await store.userById(req.params.id);

@@ -21,6 +21,9 @@ const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-2.5-flash,gemini-2.5
 const FAST_MODELS = (process.env.GROQ_FAST_MODELS || 'openai/gpt-oss-20b,openai/gpt-oss-120b').split(',');
 const BIG_MODELS = (process.env.GROQ_BIG_MODELS || 'openai/gpt-oss-120b,qwen/qwen3.6-27b').split(',');
 
+let compression; // isteğe bağlı: npm install ile gelir; sayfalar ~%75 küçülür
+try { compression = require('compression'); } catch { console.warn('ℹ️  Daha hızlı yükleme için `npm install` çalıştırın (compression paketi).'); }
+if (compression) app.use(compression());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 require('./auth')(app); // giriş sistemi: bundan sonraki tüm /api uçları oturum ister
@@ -131,9 +134,17 @@ const REF = new RegExp(
   `|${L}(metne|parçaya|grafiğe|tabloya|şekle|haritaya|şiire|diyaloğa|görsele|resme) göre${R}` +
   `|${L}(metinde|parçada|şiirde|dizelerde|grafikte|tabloda|şekilde|haritada|görselde)${R}` +
   `|(^|[.?!:]\\s+)(metnin|parçanın|şiirin|dizenin|paragrafın|metindeki|parçadaki)${R}`, 'iu');
-// Soru kökünün içine gerçekten bir parça yazılmışsa (tırnak içinde uzun alıntı) sorun yok
-const hasEmbedded = t => /["“„«][^"”»]{50,}["”»]/.test(t) || t.length > 320;
-const selfContained = t => !REF.test(t) || hasEmbedded(t);
+// Kaynak türleri: "Hadiste ...", "Ayete göre ...", "Şiirdeki ...", "Bu hadiste ..." gibi ifadeler, o kaynağın soruda VERİLMESİNİ gerektirir.
+// ("Hangi surede ...?" gibi genel bilgi soruları serbesttir.)
+const SRC = 'hadis|ayet|sure|şiir|dize|beyit|mısra|roman|hikâye|hikaye|öykü|masal|fıkra|makale|mektup|anı|destan|kıssa|rivayet|nutuk|paragraf|diyalog|bildiri|dilekçe|haber|röportaj|vaka|senaryo|alıntı|atasözü';
+const SRC_REF = new RegExp(
+  `(?<!hangi\\s)${L}(${SRC})(d[ea]|t[ea]|d[ea]ki|t[ea]ki|d[ea]n|t[ea]n|y?[ea]\\s+göre)${R}` +
+  `|${L}(bu|şu|yukarıdaki|aşağıdaki|verilen|söz konusu)\\s+(${SRC})(i|ı|u|ü|in|ın|un|ün|nin|nın|nun|nün)?${R}` +
+  `|${L}(yukarıdaki|verilen|söz konusu)\\s+(olay|örnek|durum|bilgi|cümle|kişi)\\p{L}{0,8}${R}` +
+  `|${L}(ifadesiyle|sözüyle|dizesiyle|cümlesiyle|deyimiyle|mısrasıyla|atasözüyle)\\s+(vurgulanan|anlatılan|kastedilen|verilmek istenen|belirtilen|ifade edilen|anlatılmak istenen)${R}`, 'iu');
+// Kaynak soru kökünün İÇİNDE verilmişse sorun yok: ya baştaki tırnaklı metin ("…"\n\nSoru) ya da uzun tırnaklı alıntı
+const hasEmbedded = t => /^\s*["“„«][^"”»]{12,}["”»]\s*\n/.test(t) || /["“„«][^"”»]{40,}["”»]/.test(t) || t.length > 320;
+const selfContained = t => !(REF.test(t) || SRC_REF.test(t)) || hasEmbedded(t);
 const cleanTitle = (t, topics = []) => {
   t = String(t || '').replace(/["“”]/g, '').replace(/\s+/g, ' ').trim();
   if (!t || t.includes('?') || t.length > 70 || t.split(' ').length > 9)
@@ -145,9 +156,12 @@ function normalizeQuiz(raw, p) {
   const out = [];
   for (const q of raw.questions) {
     if (!q || typeof q.question !== 'string' || q.question.trim().length < 8) continue;
-    if (!selfContained(q.question)) continue; // metni olmayan "metne göre" soruları elenir
+    // Soru bir metne/hadise/ayete/şiire dayanıyorsa model metni "passage" alanında verir; soru kökünün başına eklenir
+    const psg = String(q.passage || '').trim().replace(/^["“„«]+|["”»]+$/g, '').trim();
+    const stem = psg.length >= 12 ? `“${psg}”\n\n${q.question.trim()}` : q.question.trim();
+    if (!selfContained(stem)) continue; // metni olmadan kaynağa gönderme yapan sorular elenir
     const item = {
-      question: q.question.trim(),
+      question: stem,
       topic: String(q.topic || '').trim().slice(0, 60),
       explanation: String(q.explanation || '').trim() || 'Açıklama üretilemedi.',
       isBonus: false
@@ -208,8 +222,10 @@ KURALLAR:
 2. Sorular YALNIZCA materyaldeki bilgilere dayansın; materyalde olmayan bilgi uydurma. Materyalde hazır sınav soruları (görselden okunmuş olabilir) varsa uygun olanları cevabıyla birlikte kullanabilir veya benzerlerini yazabilirsin.
 3. Sorular materyalin farklı konularına dengeli dağılsın${p.topics?.length ? ` (konular: ${p.topics.join('; ')})` : ''}; aynı bilgiyi tekrar sorma.
 4. Zorluk: ${p.difficulty}.${p.level ? ` Öğrenci seviyesi: ${p.level}; dil ve içeriği buna uygun tut.` : ''} ${p.difficulty.includes('LGS') ? 'Yorum, çıkarım ve kavrama düzeyinde, ÖSYM/MEB tarzı sorular yaz.' : 'Ezberden çok kavramayı ölç.'}
-5. Her soru TEK BAŞINA cevaplanabilmeli. Ortada olmayan bir metne, şiire, paragrafa, tabloya, grafiğe, şekle, haritaya veya görsele ASLA gönderme yapma ("metne göre", "metnin türü", "yukarıdaki şiirde", "tabloya göre" gibi ifadeler YASAK).
-6. Bir parça gerekiyorsa o parçayı soru kökünün İÇİNE tırnak işaretiyle eksiksiz yaz; yoksa o tür soruyu hiç sorma. Bilgi, kavram, ilişki ve yorum soruları sor.
+5. Her soru TEK BAŞINA cevaplanabilmeli. Öğrenci elinde SADECE soruyu görüyor; materyali görmüyor. Bu yüzden ortada olmayan bir metne, hadise, ayete, şiire, paragrafa, hikâyeye, olaya, tabloya, grafiğe, şekle, haritaya veya görsele gönderme yapma ("metne göre", "metnin türü", "hadiste", "ayette", "şiirde", "romanda", "bu hadiste", "yukarıdaki parçada", "tabloya göre" gibi ifadeler, kaynağın kendisi verilmedikçe YASAK).
+6. Soru belirli bir metne/hadise/ayete/şiire/paragrafa/olaya dayanıyorsa o metnin KENDİSİNİ "passage" alanına eksiksiz yaz (hadis ve ayette Türkçe meali; yalnızca materyalde geçen ya da kesin bildiğin metin, uydurma YASAK). Metni veremiyorsan o soruyu hiç sorma, onun yerine genel bilgi/kavram sorusu sor. Genel bilgi sorularında "passage" boş string olsun.
+   ÖRNEK KÖTÜ: "Hadiste “yarım hurma” ifadesiyle vurgulanan temel mesaj nedir?" (hadis verilmemiş, öğrenci bilemez)
+   ÖRNEK İYİ: passage: "Yarım hurma ile de olsa kendinizi ateşten koruyun." — question: "Bu hadiste vurgulanan temel mesaj nedir?"
 7. "explanation": doğru cevabın neden doğru olduğunu 1-2 cümleyle açıkla.
 8. "topic": sorunun ait olduğu konu; ${p.topics?.length ? 'yukarıdaki konu listesinden birini aynen yaz' : 'kısa bir konu adı yaz (en fazla 4 kelime)'}.
 9. Dil: Türkçe. Yanıt SADECE geçerli bir JSON nesnesi olsun.
@@ -217,12 +233,28 @@ KURALLAR:
 FORMAT: ${fmt}
 
 ÇIKTI ŞEMASI:
-{"title":"${p.title}","questions":[{"question":"...","topic":"...","options":[...],"correctAnswer":${p.type === 'mc' ? '0' : '"..."'},"explanation":"...","isBonus":false}]}
+{"title":"${p.title}","questions":[{"passage":"","question":"...","topic":"...","options":[...],"correctAnswer":${p.type === 'mc' ? '0' : '"..."'},"explanation":"...","isBonus":false}]}
 
 MATERYAL:
 """
 ${p.summary}
 """`;
+}
+
+// Kural tabanlı filtrenin kaçırdıklarını yakalar: hızlı model, "bu soru verilmeyen bir kaynağa mı dayanıyor?" diye kontrol eder
+async function dropSourceDependent(raw) {
+  try {
+    const list = (raw.questions || []).map((q, i) => ({ i, soru: String(q.question || '').slice(0, 600), metin: String(q.passage || '').slice(0, 500), siklar: q.options }));
+    const r = await callGroq(FAST_MODELS, [{ role: 'user', content:
+      `Aşağıdaki sınav sorularını denetle. Öğrenci YALNIZCA soruyu, "metin" alanını ve şıkları görüyor.\n` +
+      `Bir soru, bunların içinde VERİLMEMİŞ belirli bir metne, hadise, ayete, şiire, paragrafa, olay örgüsüne, kişiye, tabloya, grafiğe veya görsele dayanıyor ve o kaynak olmadan cevaplanamıyorsa "needs_source" listesine indeksini ekle.\n` +
+      `"metin" alanı doluysa kaynak verilmiş sayılır. Genel ders bilgisi soruları (ör. "Fotosentez nerede gerçekleşir?") listeye EKLENMEZ.\n` +
+      `Yalnızca JSON: {"needs_source":[indeksler]}\n\nSorular:\n${JSON.stringify(list)}` }],
+      { json: true, temperature: 0, effort: 'low', maxTokens: 1500, timeout: 30000 });
+    const bad = new Set((extractJson(r.text).needs_source || []).map(Number));
+    if (bad.size) console.log(`Kaynak gerektiren ${bad.size} soru elendi.`);
+    return { ...raw, questions: raw.questions.filter((_, i) => !bad.has(i)) };
+  } catch (e) { console.warn('Kaynak kontrolü atlandı:', e.message); return raw; }
 }
 
 // ---------- Uç noktalar ----------
@@ -326,7 +358,9 @@ app.post('/api/agent3-generator', async (req, res) => {
         { role: 'system', content: 'Yalnızca geçerli JSON döndüren bir sınav üretim motorusun.' },
         { role: 'user', content: buildPrompt(p) }
       ], { json: true, temperature: attempt === 1 ? 0.5 : 0.3, effort: p.effort, maxTokens: 12000 });
-      const { degraded, ...quiz } = normalizeQuiz(extractJson(r.text), { ...p, allowDegraded: attempt === 3 });
+      let raw = extractJson(r.text);
+      if (attempt < 3) raw = await dropSourceDependent(raw); // son denemede yalnızca kural tabanlı filtre kalır
+      const { degraded, ...quiz } = normalizeQuiz(raw, { ...p, allowDegraded: attempt === 3 });
       return res.json({ quiz, model: r.model, attempts: attempt, warning: degraded ? 'Yeterli ek soru üretilemediği için son soru bonus olarak işaretlendi.' : undefined });
     } catch (e) { lastErr = e; console.warn(`Ajan3 deneme ${attempt}:`, e.message); if (e.fatal) break; }
   }

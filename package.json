@@ -1,9 +1,11 @@
 {
   "name": "quizcraft-ai-pro",
-  "version": "2.0.0",
+  "version": "2.3.0",
   "description": "QuizCraft AI Pro - Çoklu ajan sınav hazırlama sistemi",
   "main": "server.js",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
@@ -14,6 +16,7 @@
     "express": "^4.19.2",
     "express-basic-auth": "^1.2.1",
     "multer": "^1.4.5-lts.1",
-    "pdf-parse": "^1.1.1"
+    "pdf-parse": "^1.1.1",
+    "compression": "^1.7.4"
   }
 }
